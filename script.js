@@ -1,603 +1,628 @@
-// ============================================================================
-// ADMIN PANEL RT - GOOGLE APPS SCRIPT BACKEND
-// ============================================================================
+// =========================
+// KONFIGURASI APLIKASI
+// =========================
+const SHEETS = ['PENGUMUMAN', 'UANG KAS', 'IURAN BULANAN', 'JADWAL RONDA'];
+// GANTI DENGAN URL DEPLOYMENT ANDA
+const API_URL = 'https://script.google.com/macros/s/AKfycbyje_h9Tefl0MMnEOUmJ-wSs_OEgO7iuwjo50s5Nezo6rtCR4C9M2NHC9uKcNpqcbez/exec';
+const BOOLEAN_SHEETS = ['IURAN BULANAN', 'JADWAL RONDA'];
 
 // =========================
-// KONFIGURASI UTAMA
+// VARIABEL GLOBAL
 // =========================
-const CONFIG = {
-  SPREADSHEET_ID: "1WMy-fI2Puxk5hTvum6zOfbBnjjHGZbjBZwpW4redlAc", // GANTI DENGAN ID SPREADSHEET ANDA
-  TIMEZONE: "Asia/Jakarta",
-  DATE_FORMAT: "dd-MMM-yyyy"
-};
-
-// =========================
-// ROUTING HANDLERS
-// =========================
-
-/**
- * Handle GET requests (read data)
- */
-function doGet(e) {
-  console.log('=== GET Request ===');
-  console.log('Parameters:', e?.parameter);
-  
-  try {
-    // Enable CORS
-    const origin = e?.parameter?.origin || '*';
-    
-    // Validasi parameter
-    if (!e || !e.parameter) {
-      return createErrorResponse("Tidak ada parameter yang diterima.", origin);
-    }
-    
-    const sheetName = e.parameter.sheet;
-    if (!sheetName) {
-      return createErrorResponse("Parameter 'sheet' diperlukan.", origin);
-    }
-    
-    // Baca data dari sheet
-    return readData(sheetName, origin);
-    
-  } catch (error) {
-    console.error('GET Error:', error);
-    return createErrorResponse(`GET Error: ${error.message}`, '*');
-  }
-}
-
-/**
- * Handle POST requests (CRUD operations)
- */
-function doPost(e) {
-  console.log('=== POST Request ===');
-  console.log('PostData:', e?.postData?.contents);
-  
-  try {
-    // Enable CORS
-    const origin = '*';
-    
-    // Validasi request
-    if (!e.postData || !e.postData.contents) {
-      return createErrorResponse("Tidak ada data POST yang diterima.", origin);
-    }
-
-    // Parse data
-    const requestData = JSON.parse(e.postData.contents);
-    console.log('Parsed data:', requestData);
-    
-    const { sheet, action } = requestData;
-
-    if (!sheet) {
-      return createErrorResponse("Parameter 'sheet' diperlukan.", origin);
-    }
-
-    if (!action) {
-      return createErrorResponse("Parameter 'action' diperlukan.", origin);
-    }
-
-    // Route ke fungsi yang sesuai
-    let result;
-    switch (action) {
-      case "create":
-        result = createRow(sheet, requestData.values);
-        break;
-        
-      case "update":
-        result = updateRow(sheet, requestData.row, requestData.values);
-        break;
-        
-      case "delete":
-        result = deleteRow(sheet, requestData.row);
-        break;
-        
-      case "updateCell":
-        result = updateCell(sheet, requestData.row, requestData.column, requestData.value);
-        break;
-        
-      case "updateBatch":
-        result = updateBatch(sheet, requestData.updates);
-        break;
-        
-      default:
-        return createErrorResponse(`Aksi tidak dikenali: ${action}`, origin);
-    }
-    
-    // Tambah CORS header
-    return result;
-    
-  } catch (error) {
-    console.error('POST Error:', error);
-    return createErrorResponse(`POST Error: ${error.message}`, '*');
-  }
-}
+let currentHeaders = [];
+let currentAction = 'create';
+let currentRowNumber = null;
+let currentSheet = SHEETS[0];
+let booleanChanges = {};
 
 // =========================
-// FUNGSI UTAMA: MEMBACA DATA
+// INISIALISASI APLIKASI
 // =========================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Aplikasi dimulai...');
+    initializeTabs();
+    loadData(currentSheet);
+    
+    document.getElementById('dataForm').addEventListener('submit', handleFormSubmit);
+    document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+});
 
-/**
- * Membaca semua data dari sheet
- */
-function readData(sheetName, origin = '*') {
-  try {
-    console.log(`Membaca data dari sheet: ${sheetName}`);
-    
-    const sheet = getSheet(sheetName);
-    
-    // Ambil semua data
-    const dataRange = sheet.getDataRange();
-    const values = dataRange.getValues();
-    
-    console.log(`Data ditemukan: ${values.length} baris, ${values[0]?.length || 0} kolom`);
-    
-    if (values.length === 0 || values[0].length === 0) {
-      return createSuccessResponse({ 
-        headers: [], 
-        rows: [],
-        message: "Sheet kosong",
-        sheet: sheetName
-      }, origin);
-    }
+// =========================
+// FUNGSI TAB MANAGEMENT
+// =========================
+function initializeTabs() {
+    const tabList = document.getElementById('sheetTabs');
+    SHEETS.forEach((sheetName, index) => {
+        const li = document.createElement('li');
+        li.className = 'nav-item';
+        li.setAttribute('role', 'presentation');
 
-    // Ambil header
-    const rawHeaders = values[0];
-    const dataRows = values.slice(1);
-    
-    // Format header
-    const headers = formatHeaders(rawHeaders);
-    
-    // Format data rows
-    const rows = dataRows.map((row, index) => {
-      const rowObj = { _row: index + 2 }; // +2 karena baris 1 adalah header
-      
-      rawHeaders.forEach((header, colIndex) => {
-        if (header !== null && header !== "" && header !== undefined) {
-          const headerKey = formatHeader(header);
-          const cellValue = row[colIndex];
-          rowObj[headerKey] = formatCellValue(cellValue);
-        }
-      });
-      
-      return rowObj;
+        const button = document.createElement('button');
+        button.className = `nav-link ${index === 0 ? 'active' : ''}`;
+        button.setAttribute('type', 'button');
+        button.setAttribute('role', 'tab');
+        button.textContent = sheetName;
+        button.onclick = () => switchSheet(sheetName, button);
+
+        li.appendChild(button);
+        tabList.appendChild(li);
     });
+}
 
-    console.log(`Data diformat: ${headers.length} kolom, ${rows.length} baris`);
-    
-    return createSuccessResponse({ 
-      headers, 
-      rows,
-      count: rows.length,
-      sheet: sheetName
-    }, origin);
-    
-  } catch (error) {
-    console.error('Read Data Error:', error);
-    return createErrorResponse(`Read Error: ${error.message}`, origin);
-  }
+function switchSheet(sheetName, buttonElement) {
+    console.log(`Beralih ke sheet: ${sheetName}`);
+    document.querySelectorAll('#sheetTabs .nav-link').forEach(btn => btn.classList.remove('active'));
+    buttonElement.classList.add('active');
+    currentSheet = sheetName;
+    document.getElementById('sheetTitle').innerText = currentSheet;
+    resetBooleanChanges();
+    loadData(currentSheet);
 }
 
 // =========================
-// FUNGSI CRUD
+// FUNGSI LOAD DATA DARI SPREADSHEET
 // =========================
-
-/**
- * Membuat baris baru
- */
-function createRow(sheetName, values) {
-  try {
-    console.log(`Membuat baris baru di ${sheetName}:`, values);
+async function loadData(sheetName) {
+    showLoader(true);
+    console.log(`Memuat data dari sheet: ${sheetName}`);
     
-    const sheet = getSheet(sheetName);
-    
-    // Validasi input
-    if (!Array.isArray(values)) {
-      throw new Error("Values harus berupa array");
-    }
-    
-    // Tambah baris baru
-    sheet.appendRow(values);
-    
-    const lastRow = sheet.getLastRow();
-    console.log(`Baris berhasil ditambahkan di baris ${lastRow}`);
-    
-    return createSuccessResponse({
-      message: "Baris baru berhasil ditambahkan",
-      row: lastRow,
-      rowCount: lastRow,
-      values: values
-    });
-    
-  } catch (error) {
-    console.error('Create Row Error:', error);
-    return createErrorResponse(`Create Error: ${error.message}`);
-  }
-}
-
-/**
- * Mengupdate baris
- */
-function updateRow(sheetName, rowNumber, values) {
-  try {
-    console.log(`Mengupdate baris ${rowNumber} di ${sheetName}:`, values);
-    
-    const sheet = getSheet(sheetName);
-    
-    // Validasi
-    if (!rowNumber || rowNumber < 2) {
-      throw new Error("Nomor baris tidak valid. Minimal baris 2.");
-    }
-    
-    if (!Array.isArray(values)) {
-      throw new Error("Values harus berupa array");
-    }
-    
-    if (rowNumber > sheet.getLastRow()) {
-      throw new Error(`Baris ${rowNumber} tidak ditemukan. Sheet hanya memiliki ${sheet.getLastRow()} baris.`);
-    }
-    
-    // Update baris
-    const range = sheet.getRange(rowNumber, 1, 1, values.length);
-    range.setValues([values]);
-    
-    console.log(`Baris ${rowNumber} berhasil diperbarui`);
-    
-    return createSuccessResponse({
-      message: "Baris berhasil diperbarui",
-      row: rowNumber,
-      values: values
-    });
-    
-  } catch (error) {
-    console.error('Update Row Error:', error);
-    return createErrorResponse(`Update Error: ${error.message}`);
-  }
-}
-
-/**
- * Menghapus baris
- */
-function deleteRow(sheetName, rowNumber) {
-  try {
-    console.log(`Menghapus baris ${rowNumber} dari ${sheetName}`);
-    
-    const sheet = getSheet(sheetName);
-    
-    // Validasi
-    if (!rowNumber || rowNumber < 2) {
-      throw new Error("Nomor baris tidak valid. Minimal baris 2.");
-    }
-    
-    if (rowNumber > sheet.getLastRow()) {
-      throw new Error(`Baris ${rowNumber} tidak ditemukan. Sheet hanya memiliki ${sheet.getLastRow()} baris.`);
-    }
-    
-    // Hapus baris
-    sheet.deleteRow(rowNumber);
-    
-    console.log(`Baris ${rowNumber} berhasil dihapus`);
-    
-    return createSuccessResponse({
-      message: "Baris berhasil dihapus",
-      row: rowNumber
-    });
-    
-  } catch (error) {
-    console.error('Delete Row Error:', error);
-    return createErrorResponse(`Delete Error: ${error.message}`);
-  }
-}
-
-/**
- * Mengupdate satu sel (untuk checkbox)
- */
-function updateCell(sheetName, rowNumber, columnName, newValue) {
-  try {
-    console.log(`Mengupdate sel di ${sheetName}, baris ${rowNumber}, kolom ${columnName}: ${newValue}`);
-    
-    const sheet = getSheet(sheetName);
-    
-    // Validasi
-    if (!rowNumber || rowNumber < 2) {
-      throw new Error("Nomor baris tidak valid. Minimal baris 2.");
-    }
-    
-    if (!columnName) {
-      throw new Error("Nama kolom diperlukan");
-    }
-    
-    if (rowNumber > sheet.getLastRow()) {
-      throw new Error(`Baris ${rowNumber} tidak ditemukan. Sheet hanya memiliki ${sheet.getLastRow()} baris.`);
-    }
-    
-    // Cari index kolom
-    const columnIndex = findColumnIndex(sheet, columnName);
-    if (columnIndex === -1) {
-      throw new Error(`Kolom "${columnName}" tidak ditemukan di sheet "${sheetName}"`);
-    }
-    
-    // Update sel
-    sheet.getRange(rowNumber, columnIndex).setValue(newValue);
-    
-    console.log(`Sel berhasil diperbarui: baris ${rowNumber}, kolom ${columnIndex} (${columnName})`);
-    
-    return createSuccessResponse({
-      message: "Sel berhasil diperbarui",
-      row: rowNumber,
-      column: columnName,
-      columnIndex: columnIndex,
-      value: newValue
-    });
-    
-  } catch (error) {
-    console.error('Update Cell Error:', error);
-    return createErrorResponse(`Update Cell Error: ${error.message}`);
-  }
-}
-
-/**
- * Mengupdate banyak sel sekaligus (batch update)
- */
-function updateBatch(sheetName, updates) {
-  try {
-    console.log(`Batch update di ${sheetName}:`, updates);
-    
-    const sheet = getSheet(sheetName);
-    const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-    
-    // Ambil header untuk mapping
-    const rawHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    
-    // Validasi updates
-    if (!Array.isArray(updates) || updates.length === 0) {
-      throw new Error("Tidak ada data update");
-    }
-    
-    let successCount = 0;
-    let failedUpdates = [];
-    
-    // Proses setiap update
-    updates.forEach((update, index) => {
-      try {
-        const { row, column, value } = update;
-        
-        if (!row || !column) {
-          throw new Error("Row dan column diperlukan");
-        }
-        
-        if (row < 2) {
-          throw new Error(`Row ${row} tidak valid. Minimal baris 2.`);
-        }
-        
-        if (row > sheet.getLastRow()) {
-          throw new Error(`Baris ${row} tidak ditemukan. Sheet hanya memiliki ${sheet.getLastRow()} baris.`);
-        }
-        
-        // Cari index kolom
-        const columnIndex = findColumnIndexFromRawHeaders(rawHeaders, column);
-        if (columnIndex === -1) {
-          throw new Error(`Kolom "${column}" tidak ditemukan`);
-        }
-        
-        console.log(`  Mengupdate: baris ${row}, kolom ${columnIndex} (${column}) = ${value}`);
-        
-        // Update sel
-        sheet.getRange(row, columnIndex).setValue(value);
-        successCount++;
-        
-      } catch (updateError) {
-        console.error(`  Update ${index} gagal:`, updateError.message);
-        failedUpdates.push({
-          index: index,
-          update: update,
-          error: updateError.message
+    try {
+        const response = await fetchWithTimeout(`${API_URL}?sheet=${encodeURIComponent(sheetName)}`, {
+            method: 'GET',
+            timeout: 30000 // 30 detik timeout
         });
-      }
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Data diterima:', result);
+        
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
+        currentHeaders = result.headers;
+        renderTable(result.headers, result.rows);
+        
+    } catch (error) {
+        console.error('Error loading data:', error);
+        showAlert('Gagal memuat data: ' + error.message, 'danger');
+        document.querySelector('#dataTable thead').innerHTML = '';
+        document.querySelector('#dataTable tbody').innerHTML = '';
+    } finally {
+        showLoader(false);
+    }
+}
+
+// =========================
+// FUNGSI RENDER TABEL
+// =========================
+function renderTable(headers, rows) {
+    const tableHead = document.querySelector('#dataTable thead');
+    const tableBody = document.querySelector('#dataTable tbody');
+    
+    tableHead.innerHTML = '';
+    tableBody.innerHTML = '';
+
+    if (headers.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = "100%";
+        td.className = "text-center text-muted py-4";
+        td.textContent = "Tidak ada data atau sheet kosong.";
+        tr.appendChild(td);
+        tableBody.appendChild(tr);
+        return;
+    }
+
+    // BUAT HEADER TABEL
+    const headerRow = document.createElement('tr');
+    headers.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        th.title = header;
+        headerRow.appendChild(th);
     });
     
-    console.log(`Batch update selesai: ${successCount} berhasil, ${failedUpdates.length} gagal`);
+    const thAction = document.createElement('th');
+    thAction.className = 'action-cell';
     
-    const response = {
-      message: `Berhasil memperbarui ${successCount} dari ${updates.length} data`,
-      successCount: successCount,
-      totalCount: updates.length
+    if (BOOLEAN_SHEETS.includes(currentSheet)) {
+        thAction.innerHTML = `
+            <button id="saveBooleanChanges" class="btn btn-success btn-sm" style="display: none;">
+                <i class="bi bi-check-square"></i> Simpan Perubahan
+            </button>
+        `;
+    } else {
+        thAction.textContent = 'Aksi';
+    }
+    headerRow.appendChild(thAction);
+    tableHead.appendChild(headerRow);
+
+    // BUAT BODY TABEL
+    rows.forEach(row => {
+        const tr = document.createElement('tr');
+        
+        headers.forEach(header => {
+            const td = document.createElement('td');
+            const cellValue = row[header];
+
+            if (BOOLEAN_SHEETS.includes(currentSheet) && (cellValue === true || cellValue === false)) {
+                td.className = 'icon-cell';
+                
+                const checkboxContainer = document.createElement('div');
+                checkboxContainer.className = 'form-check d-flex justify-content-center';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'form-check-input boolean-checkbox';
+                checkbox.checked = Boolean(cellValue);
+                checkbox.dataset.row = row._row;
+                checkbox.dataset.column = header;
+                checkbox.dataset.original = cellValue;
+                
+                checkbox.onchange = function() {
+                    handleCheckboxChange(this);
+                };
+                
+                checkboxContainer.appendChild(checkbox);
+                td.appendChild(checkboxContainer);
+            } else {
+                td.textContent = cellValue !== undefined && cellValue !== null ? String(cellValue) : '';
+            }
+            tr.appendChild(td);
+        });
+        
+        const tdAction = document.createElement('td');
+        tdAction.className = 'action-cell';
+        
+        if (BOOLEAN_SHEETS.includes(currentSheet)) {
+            tdAction.innerHTML = `
+                <button class="btn btn-danger btn-sm w-100" onclick="openDeleteModal(${row._row})">
+                    <i class="bi bi-trash"></i> Hapus
+                </button>
+            `;
+        } else {
+            tdAction.innerHTML = `
+                <div class="btn-group" role="group">
+                    <button class="btn btn-warning btn-sm" onclick="openUpdateModal(${row._row}, ${JSON.stringify(row).replace(/"/g, '&quot;')})">
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${row._row})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+        }
+        tr.appendChild(tdAction);
+        tableBody.appendChild(tr);
+    });
+}
+
+// =========================
+// FUNGSI HANDLE CHECKBOX
+// =========================
+function handleCheckboxChange(checkbox) {
+    const newValue = checkbox.checked;
+    const rowNum = checkbox.dataset.row;
+    const colName = checkbox.dataset.column;
+    
+    if (!booleanChanges[rowNum]) booleanChanges[rowNum] = {};
+    booleanChanges[rowNum][colName] = newValue;
+    
+    updateSaveButton();
+    
+    // Tandai checkbox yang berubah
+    if (String(newValue) !== checkbox.dataset.original) {
+        checkbox.classList.add('checkbox-changed');
+    } else {
+        checkbox.classList.remove('checkbox-changed');
+        delete booleanChanges[rowNum][colName];
+        if (Object.keys(booleanChanges[rowNum]).length === 0) {
+            delete booleanChanges[rowNum];
+        }
+    }
+}
+
+function updateSaveButton() {
+    const saveBtn = document.getElementById('saveBooleanChanges');
+    const hasChanges = Object.keys(booleanChanges).length > 0;
+    
+    if (saveBtn) {
+        saveBtn.style.display = hasChanges ? 'inline-block' : 'none';
+        
+        let changeCount = 0;
+        Object.values(booleanChanges).forEach(colChanges => {
+            changeCount += Object.keys(colChanges).length;
+        });
+        
+        if (changeCount > 0) {
+            saveBtn.innerHTML = `<i class="bi bi-check-square"></i> Simpan ${changeCount} Perubahan`;
+            saveBtn.disabled = false;
+        } else {
+            saveBtn.style.display = 'none';
+        }
+    }
+}
+
+async function saveBooleanChanges() {
+    if (Object.keys(booleanChanges).length === 0) {
+        showAlert('Tidak ada perubahan untuk disimpan', 'warning');
+        return;
+    }
+    
+    const saveBtn = document.getElementById('saveBooleanChanges');
+    if (saveBtn) saveBtn.disabled = true;
+    
+    showLoader(true);
+    console.log('Menyimpan perubahan:', booleanChanges);
+    
+    try {
+        // Format updates
+        const updates = [];
+        Object.keys(booleanChanges).forEach(rowNum => {
+            Object.keys(booleanChanges[rowNum]).forEach(colName => {
+                updates.push({
+                    row: parseInt(rowNum),
+                    column: colName,
+                    value: booleanChanges[rowNum][colName]
+                });
+            });
+        });
+        
+        console.log('Updates to send:', updates);
+        
+        const payload = {
+            sheet: currentSheet,
+            action: 'updateBatch',
+            updates: updates
+        };
+        
+        console.log('Payload:', payload);
+        
+        const response = await fetchWithTimeout(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            timeout: 30000
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Save result:', result);
+        
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
+        showAlert(`✅ Berhasil menyimpan ${result.successCount || updates.length} perubahan!`, 'success');
+        resetBooleanChanges();
+        
+        // Reload data untuk sinkronisasi
+        setTimeout(() => loadData(currentSheet), 1000);
+        
+    } catch (error) {
+        console.error('Error saving changes:', error);
+        showAlert(`❌ Gagal menyimpan perubahan: ${error.message}`, 'danger');
+        
+        // Re-enable save button
+        if (saveBtn) saveBtn.disabled = false;
+    } finally {
+        showLoader(false);
+    }
+}
+
+function resetBooleanChanges() {
+    booleanChanges = {};
+    const saveBtn = document.getElementById('saveBooleanChanges');
+    if (saveBtn) {
+        saveBtn.style.display = 'none';
+        saveBtn.disabled = false;
+    }
+    document.querySelectorAll('.checkbox-changed').forEach(cb => {
+        cb.classList.remove('checkbox-changed');
+    });
+}
+
+// =========================
+// FUNGSI MODAL HANDLERS
+// =========================
+function openCreateModal() {
+    currentAction = 'create';
+    document.getElementById('formModalLabel').innerText = `Tambah Data Baru ke ${currentSheet}`;
+    generateFormFields();
+    const modal = new bootstrap.Modal(document.getElementById('formModal'));
+    modal.show();
+}
+
+function openUpdateModal(rowNumber, rowData) {
+    currentAction = 'update';
+    currentRowNumber = rowNumber;
+    document.getElementById('formModalLabel').innerText = `Edit Data di ${currentSheet}`;
+    generateFormFields(rowData);
+    const modal = new bootstrap.Modal(document.getElementById('formModal'));
+    modal.show();
+}
+
+function openDeleteModal(rowNumber) {
+    currentRowNumber = rowNumber;
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+// =========================
+// FUNGSI FORM GENERATOR
+// =========================
+function generateFormFields(data = {}) {
+    const formBody = document.getElementById('formModalBody');
+    formBody.innerHTML = '';
+
+    if (currentHeaders.length === 0) {
+        formBody.innerHTML = '<p class="text-muted">Tidak ada kolom untuk diisi.</p>';
+        return;
+    }
+
+    currentHeaders.forEach(header => {
+        const formGroup = document.createElement('div');
+        const value = data[header];
+        
+        // Cek apakah ini field boolean
+        if (BOOLEAN_SHEETS.includes(currentSheet) && 
+            (value === true || value === false || 
+             currentSheet.includes('IURAN') || currentSheet.includes('RONDA'))) {
+            
+            formGroup.className = 'mb-3 form-check';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'form-check-input';
+            checkbox.id = `input-${header}`;
+            checkbox.name = header;
+            checkbox.checked = Boolean(value);
+            
+            const label = document.createElement('label');
+            label.htmlFor = `input-${header}`;
+            label.className = 'form-check-label';
+            label.textContent = header;
+            
+            formGroup.appendChild(checkbox);
+            formGroup.appendChild(label);
+        } else {
+            formGroup.className = 'mb-3';
+            
+            const label = document.createElement('label');
+            label.htmlFor = `input-${header}`;
+            label.className = 'form-label';
+            label.textContent = header;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-control';
+            input.id = `input-${header}`;
+            input.name = header;
+            input.value = (value !== undefined && value !== null) ? String(value) : '';
+            
+            formGroup.appendChild(label);
+            formGroup.appendChild(input);
+        }
+        formBody.appendChild(formGroup);
+    });
+}
+
+// =========================
+// FUNGSI CRUD OPERATIONS
+// =========================
+async function handleFormSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const values = currentHeaders.map(header => {
+        const val = formData.get(header);
+        const input = form.elements[`input-${header}`];
+        
+        if (input && input.type === 'checkbox') {
+            return val === 'on';
+        }
+        return val || '';
+    });
+    
+    showLoader(true);
+    
+    const payload = {
+        sheet: currentSheet,
+        action: currentAction,
+        values: values
     };
     
-    if (failedUpdates.length > 0) {
-      response.failedUpdates = failedUpdates;
-      response.message += ` (${failedUpdates.length} gagal)`;
+    if (currentAction === 'update') {
+        payload.row = currentRowNumber;
     }
-    
-    return createSuccessResponse(response);
-    
-  } catch (error) {
-    console.error('Batch Update Error:', error);
-    return createErrorResponse(`Batch Update Error: ${error.message}`);
-  }
-}
 
-// =========================
-// FUNGSI BANTUAN (HELPERS)
-// =========================
+    try {
+        console.log('Sending form data:', payload);
+        
+        const response = await fetchWithTimeout(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            timeout: 30000
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Form submit result:', result);
 
-/**
- * Mendapatkan sheet berdasarkan nama
- */
-function getSheet(sheetName) {
-  console.log(`Mencari sheet: ${sheetName}`);
-  
-  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(sheetName);
-  
-  if (!sheet) {
-    const sheetNames = ss.getSheets().map(s => s.getName());
-    console.log(`Sheet tersedia: ${sheetNames.join(', ')}`);
-    throw new Error(`Sheet "${sheetName}" tidak ditemukan. Sheet yang tersedia: ${sheetNames.join(', ')}`);
-  }
-  
-  console.log(`Sheet ditemukan: ${sheetName} (${sheet.getLastRow()} baris, ${sheet.getLastColumn()} kolom)`);
-  return sheet;
-}
+        if (result.error) {
+            throw new Error(result.error);
+        }
 
-/**
- * Mencari index kolom berdasarkan nama
- */
-function findColumnIndex(sheet, columnName) {
-  const rawHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  return findColumnIndexFromRawHeaders(rawHeaders, columnName);
-}
+        showAlert(`✅ Data berhasil ${currentAction === 'create' ? 'ditambahkan' : 'diperbarui'}!`, 'success');
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('formModal'));
+        if (modal) modal.hide();
+        
+        form.reset();
+        
+        // Tunggu sebentar sebelum reload
+        setTimeout(() => loadData(currentSheet), 1000);
 
-/**
- * Mencari index kolom dari array header
- */
-function findColumnIndexFromRawHeaders(rawHeaders, columnName) {
-  for (let i = 0; i < rawHeaders.length; i++) {
-    const header = rawHeaders[i];
-    if (header === null || header === undefined) continue;
-    
-    const formattedHeader = formatHeader(header);
-    
-    if (formattedHeader === columnName) {
-      return i + 1; // +1 karena index di Google Sheets mulai dari 1
+    } catch (error) {
+        console.error('Form submit error:', error);
+        showAlert('❌ Terjadi kesalahan: ' + error.message, 'danger');
+    } finally {
+        showLoader(false);
     }
-  }
-  return -1;
 }
 
-/**
- * Memformat header tunggal
- */
-function formatHeader(header) {
-  if (header instanceof Date) {
-    return Utilities.formatDate(header, CONFIG.TIMEZONE, CONFIG.DATE_FORMAT);
-  }
-  return String(header).trim();
-}
+async function confirmDelete() {
+    showLoader(true);
+    
+    const payload = {
+        sheet: currentSheet,
+        action: 'delete',
+        row: currentRowNumber
+    };
 
-/**
- * Memformat semua header
- */
-function formatHeaders(headers) {
-  return headers.map(header => formatHeader(header));
-}
+    try {
+        console.log('Deleting row:', payload);
+        
+        const response = await fetchWithTimeout(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            timeout: 30000
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Delete result:', result);
 
-/**
- * Memformat nilai sel
- */
-function formatCellValue(value) {
-  if (value instanceof Date) {
-    return value;
-  }
-  if (value === true || value === false) {
-    return value;
-  }
-  if (typeof value === 'number') {
-    return value;
-  }
-  if (value === null || value === undefined) {
-    return '';
-  }
-  return String(value).trim();
-}
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
+        showAlert('✅ Data berhasil dihapus!', 'success');
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+        if (modal) modal.hide();
+        
+        // Tunggu sebentar sebelum reload
+        setTimeout(() => loadData(currentSheet), 1000);
 
-/**
- * Membuat response sukses dengan CORS
- */
-function createSuccessResponse(data, origin = '*') {
-  const response = {
-    success: true,
-    timestamp: new Date().toISOString(),
-    ...data
-  };
-  
-  console.log('Success response:', response);
-  
-  return ContentService
-    .createTextOutput(JSON.stringify(response))
-    .setMimeType(ContentService.MimeType.JSON)
-    .addMetaData('Access-Control-Allow-Origin', origin);
-}
-
-/**
- * Membuat response error dengan CORS
- */
-function createErrorResponse(message, origin = '*') {
-  const response = {
-    success: false,
-    error: message,
-    timestamp: new Date().toISOString()
-  };
-  
-  console.log('Error response:', response);
-  
-  return ContentService
-    .createTextOutput(JSON.stringify(response))
-    .setMimeType(ContentService.MimeType.JSON)
-    .addMetaData('Access-Control-Allow-Origin', origin);
+    } catch (error) {
+        console.error('Delete error:', error);
+        showAlert('❌ Terjadi kesalahan: ' + error.message, 'danger');
+    } finally {
+        showLoader(false);
+    }
 }
 
 // =========================
-// FUNGSI TESTING & DEBUG
+// FUNGSI UTILITY
 // =========================
+function showLoader(show) {
+    const loader = document.getElementById('loader');
+    if (loader) {
+        loader.style.display = show ? 'flex' : 'none';
+    }
+}
 
-/**
- * Test function untuk debugging
- */
-function testFunction() {
-  console.log("=== Testing Google Apps Script ===");
-  
-  try {
-    const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-    const sheets = ss.getSheets();
+function showAlert(message, type) {
+    const alertContainer = document.getElementById('alertContainer');
+    if (!alertContainer) return;
     
-    console.log(`Total sheets: ${sheets.length}`);
-    console.log("Sheets:");
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        <div class="d-flex align-items-center">
+            <div class="flex-grow-1">${message}</div>
+            <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    alertContainer.appendChild(alertDiv);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode === alertContainer) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// Fetch dengan timeout
+async function fetchWithTimeout(url, options = {}) {
+    const { timeout = 30000, ...fetchOptions } = options;
     
-    sheets.forEach(sheet => {
-      const name = sheet.getName();
-      const rows = sheet.getLastRow();
-      const cols = sheet.getLastColumn();
-      console.log(`- ${name}: ${rows} rows, ${cols} cols`);
-      
-      // Tampilkan header jika ada
-      if (rows > 0 && cols > 0) {
-        const headers = sheet.getRange(1, 1, 1, cols).getValues()[0];
-        console.log(`  Headers: ${headers.map(h => formatHeader(h)).join(', ')}`);
-      }
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    
+    try {
+        const response = await fetch(url, {
+            ...fetchOptions,
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        if (error.name === 'AbortError') {
+            throw new Error(`Request timeout setelah ${timeout}ms`);
+        }
+        throw error;
+    }
+}
+
+// =========================
+// EKSPOR FUNGSI UNTUK HTML
+// =========================
+window.openCreateModal = openCreateModal;
+window.openUpdateModal = openUpdateModal;
+window.openDeleteModal = openDeleteModal;
+window.saveBooleanChanges = saveBooleanChanges;
+
+// =========================
+// DEBUGGING HELPERS
+// =========================
+window.debugChanges = function() {
+    console.log('Current booleanChanges:', booleanChanges);
+    console.log('Current sheet:', currentSheet);
+    console.log('Current headers:', currentHeaders);
+    
+    const checkboxes = document.querySelectorAll('.boolean-checkbox');
+    console.log('Total checkboxes:', checkboxes.length);
+    
+    checkboxes.forEach((cb, index) => {
+        console.log(`Checkbox ${index}:`, {
+            row: cb.dataset.row,
+            column: cb.dataset.column,
+            checked: cb.checked,
+            original: cb.dataset.original
+        });
     });
     
-    return "Test completed successfully";
-    
-  } catch (error) {
-    console.error("Test error:", error);
-    return `Test failed: ${error.message}`;
-  }
-}
+    alert(`Debug info logged to console. Changes: ${Object.keys(booleanChanges).length}`);
+};
 
-/**
- * Setup sheet untuk testing
- */
-function setupTestSheets() {
-  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  
-  // Buat sheet jika belum ada
-  const sheetNames = ['PENGUMUMAN', 'UANG KAS', 'IURAN BULANAN', 'JADWAL RONDA'];
-  
-  sheetNames.forEach(sheetName => {
-    let sheet = ss.getSheetByName(sheetName);
-    if (!sheet) {
-      sheet = ss.insertSheet(sheetName);
-      console.log(`Sheet ${sheetName} dibuat`);
-    }
-    
-    // Setup header untuk sheet boolean
-    if (sheetName === 'IURAN BULANAN' || sheetName === 'JADWAL RONDA') {
-      if (sheet.getLastRow() === 0) {
-        const headers = ['Nama', 'Status', 'Keterangan'];
-        sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-        console.log(`Header untuk ${sheetName} ditambahkan`);
-      }
-    }
-  });
-  
-  return "Setup completed";
-}
+window.clearChanges = function() {
+    resetBooleanChanges();
+    alert('Perubahan telah dibersihkan');
+};
