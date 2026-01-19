@@ -3,7 +3,7 @@
 // =========================
 const SHEETS = ['PENGUMUMAN', 'UANG KAS', 'IURAN BULANAN', 'JADWAL RONDA'];
 // Pastikan URL ini benar dan sesuai dengan URL Deploy Apps Script Anda
-const API_URL = 'https://script.google.com/macros/s/AKfycbwTb1EtfcKgqKhIDJypTLrw7Iju9SerYf7ynabqT_U7h1IkiVa-IXQgdScEJRxnidK9/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxq1M_KH3ph9jzvhQ8W4mSziGwKmGz7ZiMBhvaXQqppVUr8CLGQq3A6mz6_AyYhO-UJ/exec';
 // Sheet yang akan menggunakan ikon toggle untuk nilai boolean
 const BOOLEAN_SHEETS = ['IURAN BULANAN', 'JADWAL RONDA'];
 
