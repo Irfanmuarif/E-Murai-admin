@@ -225,7 +225,7 @@
     <script>
         // --- KONFIGURASI ---
         const SHEETS = ['PENGUMUMAN', 'UANG KAS', 'IURAN BULANAN', 'JADWAL RONDA']; 
-        const API_URL = 'https://script.google.com/macros/s/AKfycby_4lNas5mZ7VzehKzGOiZ8xokCqHb_zsGa67le0xxq4NRNAdF66PMqLoj_QiBUrd5E/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx1Zpj96b7T6GTu4FlFDo3BwvD096sX6WKxNk8DuNHsMY9vOhCR6RoNbOLktCzXRNt9/exec';
         
         // Sheet yang menggunakan ikon boolean
         const BOOLEAN_SHEETS = ['IURAN BULANAN', 'JADWAL RONDA'];
@@ -234,6 +234,7 @@
         let currentAction = 'create';
         let currentRowNumber = null;
         let currentSheet = SHEETS[0];
+        let tableData = []; // Menyimpan data tabel untuk referensi
 
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -285,6 +286,7 @@
                 }
                 
                 currentHeaders = result.headers;
+                tableData = result.rows; // Simpan data tabel
                 renderTable(result.headers, result.rows);
                 
             } catch (error) {
@@ -523,6 +525,7 @@
         async function toggleBoolean(rowNumber, columnName, newValue, iconElement) {
             const originalClasses = iconElement.className;
             const originalTitle = iconElement.title;
+            const originalValue = !newValue; // Nilai asli sebelum perubahan
 
             // 1. Berikan feedback visual INSTANT
             if (newValue) {
@@ -535,6 +538,12 @@
             
             // 2. Tandai ikon sedang di-update
             iconElement.classList.add('updating');
+
+            // 3. Update data di memori untuk sinkronisasi
+            const rowIndex = tableData.findIndex(row => row._row === rowNumber);
+            if (rowIndex !== -1) {
+                tableData[rowIndex][columnName] = newValue;
+            }
 
             const payload = {
                 sheet: currentSheet,
@@ -559,16 +568,20 @@
                 // Tidak perlu loadData() lagi, sudah cepat!
 
             } catch (error) {
-                // 3. JIKA GAGAL, kembalikan ikon ke semula
+                // 4. JIKA GAGAL, kembalikan ikon dan data ke semula
                 showAlert('Gagal memperbarui status: ' + error.message, 'danger');
                 iconElement.className = originalClasses;
                 iconElement.title = originalTitle;
+                
+                // Kembalikan data di memori
+                if (rowIndex !== -1) {
+                    tableData[rowIndex][columnName] = originalValue;
+                }
             } finally {
-                // 4. Hapus tanda "updating"
+                // 5. Hapus tanda "updating"
                 iconElement.classList.remove('updating');
             }
         }
-
 
         // --- UTILITIES ---
         function showLoader(show) {
