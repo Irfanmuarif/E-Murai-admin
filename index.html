@@ -112,10 +112,14 @@
         .clickable-icon {
             cursor: pointer;
             font-size: 1.3rem;
-            transition: transform 0.1s, color 0.2s, opacity 0.2s;
+            transition: transform 0.1s, color 0.2s;
         }
         .clickable-icon:hover {
             transform: scale(1.2);
+        }
+        .clickable-icon.updating {
+            opacity: 0.5;
+            pointer-events: none; /* Nonaktifkan klik saat proses update */
         }
     </style>
 </head>
@@ -218,8 +222,374 @@
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- GANTI SCRIPT INI DENGAN FILE EKSTERNAL -->
-    <script src="script.js"></script>
+    <script>
+        // --- KONFIGURASI ---
+        const SHEETS = ['PENGUMUMAN', 'UANG KAS', 'IURAN BULANAN', 'JADWAL RONDA']; 
+        const API_URL = 'https://script.google.com/macros/s/AKfycbylJLPCw5lBlwND6teaZWXzs-s7LsBlF08WVxY3DioUtPSNi8DUKYdqnP7YgGhqc5YX/exec';
+        
+        // Sheet yang menggunakan ikon boolean
+        const BOOLEAN_SHEETS = ['IURAN BULANAN', 'JADWAL RONDA'];
 
+        let currentHeaders = [];
+        let currentAction = 'create';
+        let currentRowNumber = null;
+        let currentSheet = SHEETS[0];
+
+        // --- EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTabs();
+            loadData(currentSheet);
+            
+            document.getElementById('dataForm').addEventListener('submit', handleFormSubmit);
+            document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+        });
+
+        // --- INISIALISASI TAB ---
+        function initializeTabs() {
+            const tabList = document.getElementById('sheetTabs');
+            SHEETS.forEach((sheetName, index) => {
+                const li = document.createElement('li');
+                li.className = 'nav-item';
+                li.setAttribute('role', 'presentation');
+
+                const button = document.createElement('button');
+                button.className = `nav-link ${index === 0 ? 'active' : ''}`;
+                button.setAttribute('type', 'button');
+                button.setAttribute('role', 'tab');
+                button.textContent = sheetName;
+                button.onclick = () => switchSheet(sheetName, button);
+
+                li.appendChild(button);
+                tabList.appendChild(li);
+            });
+        }
+
+        function switchSheet(sheetName, buttonElement) {
+            document.querySelectorAll('#sheetTabs .nav-link').forEach(btn => btn.classList.remove('active'));
+            buttonElement.classList.add('active');
+            currentSheet = sheetName;
+            document.getElementById('sheetTitle').innerText = currentSheet;
+            loadData(currentSheet);
+        }
+
+        // --- FUNGSI-FUNGSI UTAMA ---
+
+        async function loadData(sheetName) {
+            showLoader(true);
+            try {
+                const response = await fetch(`${API_URL}?sheet=${sheetName}`);
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                currentHeaders = result.headers;
+                renderTable(result.headers, result.rows);
+                
+            } catch (error) {
+                showAlert('Gagal memuat data: ' + error.message, 'danger');
+                document.querySelector('#dataTable thead').innerHTML = '';
+                document.querySelector('#dataTable tbody').innerHTML = '';
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        function renderTable(headers, rows) {
+            const tableHead = document.querySelector('#dataTable thead');
+            const tableBody = document.querySelector('#dataTable tbody');
+            
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            if (headers.length === 0) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = "100%";
+                td.className = "text-center text-muted";
+                td.textContent = "Tidak ada data atau sheet kosong.";
+                tr.appendChild(td);
+                tableBody.appendChild(tr);
+                return;
+            }
+
+            // Buat header
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            const thAction = document.createElement('th');
+            thAction.textContent = 'Aksi';
+            thAction.className = 'action-cell';
+            headerRow.appendChild(thAction);
+            tableHead.appendChild(headerRow);
+
+            // Buat baris data
+            rows.forEach(row => {
+                const tr = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    const cellValue = row[header];
+
+                    // Tampilkan ikon untuk data boolean di sheet tertentu
+                    if (BOOLEAN_SHEETS.includes(currentSheet) && typeof cellValue === 'boolean') {
+                        td.className = 'icon-cell'; // Tambahkan class untuk styling
+                        const icon = document.createElement('i');
+                        icon.className = 'clickable-icon bi ';
+                        
+                        if (cellValue) {
+                            icon.className += 'bi-check-circle-fill text-success';
+                            icon.title = 'Selesai. Klik untuk ubah.';
+                        } else {
+                            icon.className += 'bi-x-circle-fill text-danger';
+                            icon.title = 'Belum Selesai. Klik untuk ubah.';
+                        }
+                        
+                        // Kirim elemen ikon itu sendiri ke fungsi
+                        icon.onclick = () => toggleBoolean(row._row, header, !cellValue, icon);
+                        td.appendChild(icon);
+                    } else {
+                        td.textContent = cellValue || '';
+                    }
+                    tr.appendChild(td);
+                });
+                
+                const tdAction = document.createElement('td');
+                tdAction.className = 'action-cell';
+                let actionButtonsHTML = '';
+                if (BOOLEAN_SHEETS.includes(currentSheet)) {
+                    actionButtonsHTML = `<button class="btn btn-danger btn-sm w-100" onclick="openDeleteModal(${row._row})"><i class="bi bi-trash"></i> Hapus</button>`;
+                } else {
+                    actionButtonsHTML = `
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-warning btn-sm" onclick="openUpdateModal(${row._row}, ${JSON.stringify(row).replace(/"/g, '&quot;')})">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${row._row})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+                tdAction.innerHTML = actionButtonsHTML;
+                tr.appendChild(tdAction);
+                tableBody.appendChild(tr);
+            });
+        }
+        
+        // --- MODAL HANDLERS ---
+        function openCreateModal() {
+            currentAction = 'create';
+            document.getElementById('formModalLabel').innerText = `Tambah Data Baru ke ${currentSheet}`;
+            generateFormFields();
+            new bootstrap.Modal(document.getElementById('formModal')).show();
+        }
+
+        function openUpdateModal(rowNumber, rowData) {
+            currentAction = 'update';
+            currentRowNumber = rowNumber;
+            document.getElementById('formModalLabel').innerText = `Edit Data di ${currentSheet}`;
+            generateFormFields(rowData);
+            new bootstrap.Modal(document.getElementById('formModal')).show();
+        }
+        
+        function openDeleteModal(rowNumber) {
+            currentRowNumber = rowNumber;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+
+        // --- FORM & CRUD ACTIONS ---
+        function generateFormFields(data = {}) {
+            const formBody = document.getElementById('formModalBody');
+            formBody.innerHTML = '';
+
+            if (currentHeaders.length === 0) {
+                formBody.innerHTML = '<p class="text-muted">Tidak ada kolom untuk diisi.</p>';
+                return;
+            }
+
+            currentHeaders.forEach(header => {
+                const formGroup = document.createElement('div');
+                formGroup.className = 'mb-3';
+                
+                const label = document.createElement('label');
+                label.htmlFor = `input-${header}`;
+                label.className = 'form-label';
+                label.textContent = header;
+                
+                if (typeof data[header] === 'boolean') {
+                    formGroup.className = 'mb-3 form-check';
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.className = 'form-check-input';
+                    input.id = `input-${header}`;
+                    input.name = header;
+                    input.checked = data[header];
+                    formGroup.appendChild(input);
+                    formGroup.appendChild(label);
+                } else {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'form-control';
+                    input.id = `input-${header}`;
+                    input.name = header;
+                    input.value = (data[header] !== undefined && data[header] !== null) ? data[header] : '';
+                    formGroup.appendChild(label);
+                    formGroup.appendChild(input);
+                }
+                formBody.appendChild(formGroup);
+            });
+        }
+
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const values = currentHeaders.map(header => {
+                const val = formData.get(header);
+                if (typeof form.elements[`input-${header}`]?.type === 'checkbox') {
+                    return val === 'on';
+                }
+                return val || '';
+            });
+            
+            showLoader(true);
+            let payload = {
+                sheet: currentSheet,
+                action: currentAction,
+                values: values
+            };
+            if (currentAction === 'update') {
+                payload.row = currentRowNumber;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                showAlert(`Data berhasil ${currentAction === 'create' ? 'ditambahkan' : 'diperbarui'}!`, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('formModal')).hide();
+                form.reset();
+                loadData(currentSheet);
+
+            } catch (error) {
+                showAlert('Terjadi kesalahan: ' + error.message, 'danger');
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function confirmDelete() {
+            showLoader(true);
+            const payload = {
+                sheet: currentSheet,
+                action: 'delete',
+                row: currentRowNumber
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                showAlert('Data berhasil dihapus!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+                loadData(currentSheet);
+
+            } catch (error) {
+                showAlert('Terjadi kesalahan: ' + error.message, 'danger');
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        // --- FUNGSI UNTUK TOGGLE BOOLEAN (PERFORMA LEBIH CEPAT) ---
+        async function toggleBoolean(rowNumber, columnName, newValue, iconElement) {
+            const originalClasses = iconElement.className;
+            const originalTitle = iconElement.title;
+
+            // 1. Berikan feedback visual INSTANT
+            if (newValue) {
+                iconElement.className = 'clickable-icon bi bi-check-circle-fill text-success';
+                iconElement.title = 'Selesai. Klik untuk ubah.';
+            } else {
+                iconElement.className = 'clickable-icon bi bi-x-circle-fill text-danger';
+                iconElement.title = 'Belum Selesai. Klik untuk ubah.';
+            }
+            
+            // 2. Tandai ikon sedang di-update
+            iconElement.classList.add('updating');
+
+            const payload = {
+                sheet: currentSheet,
+                action: 'updateCell',
+                row: rowNumber,
+                column: columnName,
+                value: newValue
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                showAlert(result.message || 'Status berhasil diperbarui!', 'success');
+                // Tidak perlu loadData() lagi, sudah cepat!
+
+            } catch (error) {
+                // 3. JIKA GAGAL, kembalikan ikon ke semula
+                showAlert('Gagal memperbarui status: ' + error.message, 'danger');
+                iconElement.className = originalClasses;
+                iconElement.title = originalTitle;
+            } finally {
+                // 4. Hapus tanda "updating"
+                iconElement.classList.remove('updating');
+            }
+        }
+
+
+        // --- UTILITIES ---
+        function showLoader(show) {
+            document.getElementById('loader').style.display = show ? 'flex' : 'none';
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            alertContainer.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+    </script>
 </body>
 </html>
