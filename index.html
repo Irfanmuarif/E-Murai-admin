@@ -116,7 +116,7 @@
             pointer-events: none;
         }
 
-        /* --- STYLE KHUSUS UNTUK JADWAL RONDA (TELAH DIPERBAIKI) --- */
+        /* --- STYLE KHUSUS UNTUK JADWAL RONDA --- */
         .compact-table {
             font-size: 0.9rem;
         }
@@ -129,23 +129,22 @@
             text-align: center !important;
         }
         
-        /* *** PERUBAHAN: Sticky Column untuk Kolom Pertama *** */
         .compact-table th:first-child,
         .compact-table td:first-child {
             position: sticky;
             left: 0;
-            z-index: 10; /* Agar berada di atas sel lain */
-            background-color: #f8f9fa; /* Warna latar agar tidak tembus pandang */
-            box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1); /* Garis pemisah */
+            z-index: 10;
+            background-color: #f8f9fa;
+            box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1);
         }
         .compact-table thead th:first-child {
-            z-index: 20; /* Header harus di atas body */
-            background-color: #f8f9fa; /* Warna header */
+            z-index: 20;
+            background-color: #f8f9fa;
         }
         
         .compact-table th:not(:first-child),
         .compact-table td:not(:first-child) {
-            padding-left: 15px; /* Beri jarak agar tidak menempel di sticky kolom */
+            padding-left: 15px;
         }
 
         .compact-table th:first-child,
@@ -164,24 +163,24 @@
             max-width: 110px !important;
         }
 
-        /* --- MEDIA QUERY UNTUK MOBILE (TELAH DIPERBAIKI) --- */
+        /* --- MEDIA QUERY UNTUK MOBILE --- */
         @media (max-width: 768px) {
             .content-wrapper {
-                padding: 5px; /* *** PERUBAHAN: Padding lebih kecil *** */
+                padding: 5px;
                 margin-top: 15px;
             }
             .compact-table {
-                font-size: 0.7rem; /* *** PERUBAHAN: Font lebih kecil *** */
+                font-size: 0.7rem;
             }
             .compact-table thead th {
-                width: 55px !important; /* *** PERUBAHAN: Lebar kolom lebih kecil *** */
+                width: 55px !important;
                 max-width: 55px !important;
                 min-width: 55px !important;
                 padding: 1px !important;
             }
             .compact-table th:first-child,
             .compact-table td:first-child {
-                width: 90px !important; /* *** PERUBAHAN: Lebar kolom nama lebih kecil *** */
+                width: 90px !important;
                 max-width: 90px !important;
                 min-width: 90px !important;
                 font-size: 0.75rem;
@@ -191,14 +190,14 @@
                 padding: 1px !important;
             }
             .clickable-icon {
-                font-size: 1.1rem; /* *** PERUBAHAN: Ikon lebih kecil *** */
+                font-size: 1.1rem;
             }
             .action-cell {
-                width: 90px !important; /* *** PERUBAHAN: Lebar kolom aksi lebih kecil *** */
+                width: 90px !important;
                 max-width: 90px !important;
             }
             .btn-sm {
-                padding: 0.1rem 0.2rem; /* *** PERUBAHAN: Padding tombol lebih kecil *** */
+                padding: 0.1rem 0.2rem;
                 font-size: 0.7rem;
             }
         }
@@ -616,7 +615,7 @@
             formBody.appendChild(infoDiv);
         }
 
-        // *** FUNGSI BARU: Generate form fields khusus untuk UANG KAS ***
+        // *** FUNGSI DIPERBAIKI: Generate form fields khusus untuk UANG KAS ***
         function generateUangKasFormFields() {
             const formBody = document.getElementById('formModalBody');
             formBody.innerHTML = '';
@@ -626,24 +625,32 @@
                 return;
             }
 
-            // Dapatkan bulan dan tahun saat ini
+            // Dapatkan tanggal saat ini untuk default
             const today = new Date();
-            const currentMonth = today.getMonth(); // 0-11
-            const currentYear = today.getFullYear();
+            const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            // 1. Field untuk Tanggal
+            const dateGroup = document.createElement('div');
+            dateGroup.className = 'mb-3';
             
-            // Daftar bulan
-            const months = [
-                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-            ];
+            const dateLabel = document.createElement('label');
+            dateLabel.htmlFor = 'input-tanggal';
+            dateLabel.className = 'form-label';
+            dateLabel.textContent = 'Tanggal';
+            
+            const dateInput = document.createElement('input');
+            dateInput.type = 'date';
+            dateInput.className = 'form-control';
+            dateInput.id = 'input-tanggal';
+            dateInput.name = 'tanggal';
+            dateInput.value = formattedDate;
+            dateInput.required = true;
+            
+            dateGroup.appendChild(dateLabel);
+            dateGroup.appendChild(dateInput);
+            formBody.appendChild(dateGroup);
 
-            // Buat opsi tahun (5 tahun sebelum dan 5 tahun setelah tahun sekarang)
-            const years = [];
-            for (let i = currentYear - 5; i <= currentYear + 5; i++) {
-                years.push(i);
-            }
-
-            // Field untuk deskripsi
+            // 2. Field untuk Keterangan
             const descHeader = currentHeaders.find(h => h.toLowerCase() === 'keterangan' || h.toLowerCase() === 'deskripsi') || 'Keterangan';
             const descGroup = document.createElement('div');
             descGroup.className = 'mb-3';
@@ -665,101 +672,7 @@
             descGroup.appendChild(descInput);
             formBody.appendChild(descGroup);
 
-            // Field untuk periode (bulan dan tahun)
-            const periodeGroup = document.createElement('div');
-            periodeGroup.className = 'mb-3';
-            
-            const periodeLabel = document.createElement('label');
-            periodeLabel.className = 'form-label';
-            periodeLabel.textContent = 'Periode';
-            
-            const periodeContainer = document.createElement('div');
-            periodeContainer.className = 'row g-2';
-            
-            // Dropdown untuk bulan
-            const monthCol = document.createElement('div');
-            monthCol.className = 'col';
-            
-            const monthSelect = document.createElement('select');
-            monthSelect.className = 'form-select';
-            monthSelect.id = 'input-bulan';
-            monthSelect.name = 'bulan';
-            
-            // Tambahkan opsi bulan
-            months.forEach((month, monthIndex) => {
-                const option = document.createElement('option');
-                option.value = month;
-                option.textContent = month;
-                
-                // Set bulan saat ini sebagai default
-                if (monthIndex === currentMonth) {
-                    option.selected = true;
-                }
-                
-                monthSelect.appendChild(option);
-            });
-            
-            monthCol.appendChild(monthSelect);
-            
-            // Dropdown untuk tahun
-            const yearCol = document.createElement('div');
-            yearCol.className = 'col';
-            
-            const yearSelect = document.createElement('select');
-            yearSelect.className = 'form-select';
-            yearSelect.id = 'input-tahun';
-            yearSelect.name = 'tahun';
-            
-            // Tambahkan opsi tahun
-            years.forEach(year => {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                
-                // Set tahun saat ini sebagai default
-                if (year === currentYear) {
-                    option.selected = true;
-                }
-                
-                yearSelect.appendChild(option);
-            });
-            
-            yearCol.appendChild(yearSelect);
-            
-            periodeContainer.appendChild(monthCol);
-            periodeContainer.appendChild(yearCol);
-            
-            periodeGroup.appendChild(periodeLabel);
-            periodeGroup.appendChild(periodeContainer);
-            formBody.appendChild(periodeGroup);
-
-            // Field untuk tanggal
-            const dateHeader = currentHeaders.find(h => h.toLowerCase() === 'tanggal');
-            if (dateHeader) {
-                const dateGroup = document.createElement('div');
-                dateGroup.className = 'mb-3';
-                
-                const dateLabel = document.createElement('label');
-                dateLabel.htmlFor = 'input-tanggal';
-                dateLabel.className = 'form-label';
-                dateLabel.textContent = dateHeader;
-                
-                // Format tanggal untuk input date (YYYY-MM-DD)
-                const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                
-                const dateInput = document.createElement('input');
-                dateInput.type = 'date';
-                dateInput.className = 'form-control';
-                dateInput.id = 'input-tanggal';
-                dateInput.name = 'tanggal';
-                dateInput.value = formattedDate;
-                
-                dateGroup.appendChild(dateLabel);
-                dateGroup.appendChild(dateInput);
-                formBody.appendChild(dateGroup);
-            }
-
-            // Field untuk jenis transaksi (pemasukkan/pengeluaran)
+            // 3. Field untuk Jenis Transaksi
             const typeGroup = document.createElement('div');
             typeGroup.className = 'mb-3';
             
@@ -788,7 +701,7 @@
             typeGroup.appendChild(typeSelect);
             formBody.appendChild(typeGroup);
 
-            // Field untuk jumlah
+            // 4. Field untuk Jumlah
             const amountGroup = document.createElement('div');
             amountGroup.className = 'mb-3';
             
@@ -810,11 +723,6 @@
             amountGroup.appendChild(amountLabel);
             amountGroup.appendChild(amountInput);
             formBody.appendChild(amountGroup);
-
-            const infoDiv = document.createElement('div');
-            infoDiv.className = 'alert alert-info';
-            infoDiv.innerHTML = `<i class="bi bi-info-circle"></i> ID akan otomatis di-generate.`;
-            formBody.appendChild(infoDiv);
         }
 
         async function handleFormSubmit(event) {
@@ -827,7 +735,6 @@
                 if (currentSheet === 'IURAN BULANAN' || currentSheet === 'JADWAL RONDA') {
                     const firstColumnValue = formData.get(currentHeaders[0]) || '';
                     values = [firstColumnValue];
-
                     for (let i = 1; i < currentHeaders.length; i++) {
                         if (currentSheet === 'JADWAL RONDA' && String(currentHeaders[i]).toLowerCase() === 'terakhir ronda') {
                             values.push('');
@@ -836,34 +743,37 @@
                         }
                     }
                 } 
-                // *** LOGIKA BARU: Untuk UANG KAS, kumpulkan nilai dari form tanpa ID ***
+                // *** LOGIKA DIPERBAIKI: Untuk UANG KAS ***
                 else if (currentSheet === 'UANG KAS') {
-                    // Lewati header pertama (ID) dan kumpulkan nilai dari form
                     // Cari indeks kolom untuk setiap field
-                    const keteranganIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'keterangan' || h.toLowerCase() === 'deskripsi');
                     const periodeIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'periode' || h.toLowerCase() === 'bulan');
                     const tanggalIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'tanggal');
+                    const keteranganIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'keterangan' || h.toLowerCase() === 'deskripsi');
                     const pemasukkanIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'pemasukkan');
                     const pengeluaranIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'pengeluaran');
                     
+                    // Fungsi helper untuk format "Bulan Tahun"
+                    const formatBulanTahun = (dateString) => {
+                        if (!dateString) return '';
+                        const date = new Date(dateString);
+                        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                        return `${months[date.getMonth()]} ${date.getFullYear()}`;
+                    };
+
                     // Buat array values dengan urutan sesuai header
                     for (let i = 1; i < currentHeaders.length; i++) {
-                        const header = currentHeaders[i];
-                        
-                        if (i === keteranganIndex) {
-                            values.push(formData.get('keterangan') || '');
+                        if (i === periodeIndex) {
+                            // Ambil nilai dari tanggal dan format menjadi "Bulan Tahun"
+                            const tanggalValue = formData.get('tanggal');
+                            values.push(formatBulanTahun(tanggalValue));
                         } 
-                        else if (i === periodeIndex) {
-                            // Gabungkan bulan dan tahun
-                            const bulan = formData.get('bulan') || '';
-                            const tahun = formData.get('tahun') || '';
-                            values.push(`${bulan} ${tahun}`);
-                        }
                         else if (i === tanggalIndex) {
                             values.push(formData.get('tanggal') || '');
                         }
+                        else if (i === keteranganIndex) {
+                            values.push(formData.get('keterangan') || '');
+                        }
                         else if (i === pemasukkanIndex || i === pengeluaranIndex) {
-                            // Isi hanya salah satu field berdasarkan jenis transaksi
                             const jenis = formData.get('jenis') || '';
                             const jumlah = formData.get('jumlah') || '0';
                             
@@ -875,7 +785,6 @@
                             }
                         }
                         else {
-                            // Untuk field lain yang tidak dikenali
                             values.push('');
                         }
                     }
