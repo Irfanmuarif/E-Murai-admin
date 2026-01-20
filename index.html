@@ -307,7 +307,7 @@
     <script>
         // --- KONFIGURASI ---
         const SHEETS = ['PENGUMUMAN', 'UANG KAS', 'IURAN BULANAN', 'JADWAL RONDA']; 
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzfuExMgPIoo9UyhCNw2ELhwCd73CQhxmYU7kKGRxjKuowGceHgDJpe_awkO8HTXfTz/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbz3jfwGsX6_2pTpStnVVnEnTwWwQgEqYpjUZPsP36_dTGZjzg1hyfQTFvxp89C2PGsh/exec';
         
         // Sheet yang menggunakan ikon boolean
         const BOOLEAN_SHEETS = ['IURAN BULANAN', 'JADWAL RONDA'];
@@ -626,85 +626,190 @@
                 return;
             }
 
-            // Dapatkan bulan dan tanggal saat ini
+            // Dapatkan bulan dan tahun saat ini
             const today = new Date();
             const currentMonth = today.getMonth(); // 0-11
-            const currentDate = today.getDate();
             const currentYear = today.getFullYear();
             
-            // Format tanggal untuk input date (YYYY-MM-DD)
-            const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDate).padStart(2, '0')}`;
-
             // Daftar bulan
             const months = [
                 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
                 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
             ];
 
-            // Generate form fields untuk setiap header kecuali ID
-            currentHeaders.forEach((header, index) => {
-                // Lewati field ID
-                if (index === 0) return;
+            // Buat opsi tahun (5 tahun sebelum dan 5 tahun setelah tahun sekarang)
+            const years = [];
+            for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+                years.push(i);
+            }
 
-                const formGroup = document.createElement('div');
-                formGroup.className = 'mb-3';
+            // Field untuk deskripsi
+            const descHeader = currentHeaders.find(h => h.toLowerCase() === 'keterangan' || h.toLowerCase() === 'deskripsi') || 'Keterangan';
+            const descGroup = document.createElement('div');
+            descGroup.className = 'mb-3';
+            
+            const descLabel = document.createElement('label');
+            descLabel.htmlFor = 'input-keterangan';
+            descLabel.className = 'form-label';
+            descLabel.textContent = descHeader;
+            
+            const descInput = document.createElement('input');
+            descInput.type = 'text';
+            descInput.className = 'form-control';
+            descInput.id = 'input-keterangan';
+            descInput.name = 'keterangan';
+            descInput.value = '';
+            descInput.required = true;
+            
+            descGroup.appendChild(descLabel);
+            descGroup.appendChild(descInput);
+            formBody.appendChild(descGroup);
+
+            // Field untuk periode (bulan dan tahun)
+            const periodeGroup = document.createElement('div');
+            periodeGroup.className = 'mb-3';
+            
+            const periodeLabel = document.createElement('label');
+            periodeLabel.className = 'form-label';
+            periodeLabel.textContent = 'Periode';
+            
+            const periodeContainer = document.createElement('div');
+            periodeContainer.className = 'row g-2';
+            
+            // Dropdown untuk bulan
+            const monthCol = document.createElement('div');
+            monthCol.className = 'col';
+            
+            const monthSelect = document.createElement('select');
+            monthSelect.className = 'form-select';
+            monthSelect.id = 'input-bulan';
+            monthSelect.name = 'bulan';
+            
+            // Tambahkan opsi bulan
+            months.forEach((month, monthIndex) => {
+                const option = document.createElement('option');
+                option.value = month;
+                option.textContent = month;
                 
-                const label = document.createElement('label');
-                label.htmlFor = `input-${header}`;
-                label.className = 'form-label';
-                label.textContent = header;
-                
-                // Jika header adalah "bulan", buat dropdown
-                if (header.toLowerCase() === 'bulan') {
-                    const select = document.createElement('select');
-                    select.className = 'form-select';
-                    select.id = `input-${header}`;
-                    select.name = header;
-                    
-                    // Tambahkan opsi bulan
-                    months.forEach((month, monthIndex) => {
-                        const option = document.createElement('option');
-                        option.value = month;
-                        option.textContent = month;
-                        
-                        // Set bulan saat ini sebagai default
-                        if (monthIndex === currentMonth) {
-                            option.selected = true;
-                        }
-                        
-                        select.appendChild(option);
-                    });
-                    
-                    formGroup.appendChild(label);
-                    formGroup.appendChild(select);
-                } 
-                // Jika header adalah "tanggal", buat input date
-                else if (header.toLowerCase() === 'tanggal') {
-                    const input = document.createElement('input');
-                    input.type = 'date';
-                    input.className = 'form-control';
-                    input.id = `input-${header}`;
-                    input.name = header;
-                    input.value = formattedDate;
-                    
-                    formGroup.appendChild(label);
-                    formGroup.appendChild(input);
-                } 
-                // Untuk field lainnya, gunakan input text biasa
-                else {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.className = 'form-control';
-                    input.id = `input-${header}`;
-                    input.name = header;
-                    input.value = '';
-                    
-                    formGroup.appendChild(label);
-                    formGroup.appendChild(input);
+                // Set bulan saat ini sebagai default
+                if (monthIndex === currentMonth) {
+                    option.selected = true;
                 }
                 
-                formBody.appendChild(formGroup);
+                monthSelect.appendChild(option);
             });
+            
+            monthCol.appendChild(monthSelect);
+            
+            // Dropdown untuk tahun
+            const yearCol = document.createElement('div');
+            yearCol.className = 'col';
+            
+            const yearSelect = document.createElement('select');
+            yearSelect.className = 'form-select';
+            yearSelect.id = 'input-tahun';
+            yearSelect.name = 'tahun';
+            
+            // Tambahkan opsi tahun
+            years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                
+                // Set tahun saat ini sebagai default
+                if (year === currentYear) {
+                    option.selected = true;
+                }
+                
+                yearSelect.appendChild(option);
+            });
+            
+            yearCol.appendChild(yearSelect);
+            
+            periodeContainer.appendChild(monthCol);
+            periodeContainer.appendChild(yearCol);
+            
+            periodeGroup.appendChild(periodeLabel);
+            periodeGroup.appendChild(periodeContainer);
+            formBody.appendChild(periodeGroup);
+
+            // Field untuk tanggal
+            const dateHeader = currentHeaders.find(h => h.toLowerCase() === 'tanggal');
+            if (dateHeader) {
+                const dateGroup = document.createElement('div');
+                dateGroup.className = 'mb-3';
+                
+                const dateLabel = document.createElement('label');
+                dateLabel.htmlFor = 'input-tanggal';
+                dateLabel.className = 'form-label';
+                dateLabel.textContent = dateHeader;
+                
+                // Format tanggal untuk input date (YYYY-MM-DD)
+                const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                
+                const dateInput = document.createElement('input');
+                dateInput.type = 'date';
+                dateInput.className = 'form-control';
+                dateInput.id = 'input-tanggal';
+                dateInput.name = 'tanggal';
+                dateInput.value = formattedDate;
+                
+                dateGroup.appendChild(dateLabel);
+                dateGroup.appendChild(dateInput);
+                formBody.appendChild(dateGroup);
+            }
+
+            // Field untuk jenis transaksi (pemasukkan/pengeluaran)
+            const typeGroup = document.createElement('div');
+            typeGroup.className = 'mb-3';
+            
+            const typeLabel = document.createElement('label');
+            typeLabel.htmlFor = 'input-jenis';
+            typeLabel.className = 'form-label';
+            typeLabel.textContent = 'Jenis Transaksi';
+            
+            const typeSelect = document.createElement('select');
+            typeSelect.className = 'form-select';
+            typeSelect.id = 'input-jenis';
+            typeSelect.name = 'jenis';
+            
+            const pemasukanOption = document.createElement('option');
+            pemasukanOption.value = 'pemasukkan';
+            pemasukanOption.textContent = 'Pemasukkan';
+            
+            const pengeluaranOption = document.createElement('option');
+            pengeluaranOption.value = 'pengeluaran';
+            pengeluaranOption.textContent = 'Pengeluaran';
+            
+            typeSelect.appendChild(pemasukanOption);
+            typeSelect.appendChild(pengeluaranOption);
+            
+            typeGroup.appendChild(typeLabel);
+            typeGroup.appendChild(typeSelect);
+            formBody.appendChild(typeGroup);
+
+            // Field untuk jumlah
+            const amountGroup = document.createElement('div');
+            amountGroup.className = 'mb-3';
+            
+            const amountLabel = document.createElement('label');
+            amountLabel.htmlFor = 'input-jumlah';
+            amountLabel.className = 'form-label';
+            amountLabel.textContent = 'Jumlah';
+            
+            const amountInput = document.createElement('input');
+            amountInput.type = 'number';
+            amountInput.className = 'form-control';
+            amountInput.id = 'input-jumlah';
+            amountInput.name = 'jumlah';
+            amountInput.value = '';
+            amountInput.required = true;
+            amountInput.min = '0';
+            amountInput.step = '1000';
+            
+            amountGroup.appendChild(amountLabel);
+            amountGroup.appendChild(amountInput);
+            formBody.appendChild(amountGroup);
 
             const infoDiv = document.createElement('div');
             infoDiv.className = 'alert alert-info';
@@ -734,10 +839,45 @@
                 // *** LOGIKA BARU: Untuk UANG KAS, kumpulkan nilai dari form tanpa ID ***
                 else if (currentSheet === 'UANG KAS') {
                     // Lewati header pertama (ID) dan kumpulkan nilai dari form
+                    // Cari indeks kolom untuk setiap field
+                    const keteranganIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'keterangan' || h.toLowerCase() === 'deskripsi');
+                    const periodeIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'periode' || h.toLowerCase() === 'bulan');
+                    const tanggalIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'tanggal');
+                    const pemasukkanIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'pemasukkan');
+                    const pengeluaranIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'pengeluaran');
+                    
+                    // Buat array values dengan urutan sesuai header
                     for (let i = 1; i < currentHeaders.length; i++) {
                         const header = currentHeaders[i];
-                        const value = formData.get(header) || '';
-                        values.push(value);
+                        
+                        if (i === keteranganIndex) {
+                            values.push(formData.get('keterangan') || '');
+                        } 
+                        else if (i === periodeIndex) {
+                            // Gabungkan bulan dan tahun
+                            const bulan = formData.get('bulan') || '';
+                            const tahun = formData.get('tahun') || '';
+                            values.push(`${bulan} ${tahun}`);
+                        }
+                        else if (i === tanggalIndex) {
+                            values.push(formData.get('tanggal') || '');
+                        }
+                        else if (i === pemasukkanIndex || i === pengeluaranIndex) {
+                            // Isi hanya salah satu field berdasarkan jenis transaksi
+                            const jenis = formData.get('jenis') || '';
+                            const jumlah = formData.get('jumlah') || '0';
+                            
+                            if ((i === pemasukkanIndex && jenis === 'pemasukkan') || 
+                                (i === pengeluaranIndex && jenis === 'pengeluaran')) {
+                                values.push(jumlah);
+                            } else {
+                                values.push('0');
+                            }
+                        }
+                        else {
+                            // Untuk field lain yang tidak dikenali
+                            values.push('');
+                        }
                     }
                 } 
                 else {
