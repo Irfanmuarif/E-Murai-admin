@@ -615,7 +615,6 @@
             formBody.appendChild(infoDiv);
         }
 
-        // *** FUNGSI DIPERBAIKI: Generate form fields khusus untuk UANG KAS ***
         function generateUangKasFormFields() {
             const formBody = document.getElementById('formModalBody');
             formBody.innerHTML = '';
@@ -625,19 +624,15 @@
                 return;
             }
 
-            // Dapatkan tanggal saat ini untuk default
             const today = new Date();
             const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-            // 1. Field untuk Tanggal
             const dateGroup = document.createElement('div');
             dateGroup.className = 'mb-3';
-            
             const dateLabel = document.createElement('label');
             dateLabel.htmlFor = 'input-tanggal';
             dateLabel.className = 'form-label';
             dateLabel.textContent = 'Tanggal';
-            
             const dateInput = document.createElement('input');
             dateInput.type = 'date';
             dateInput.className = 'form-control';
@@ -645,21 +640,17 @@
             dateInput.name = 'tanggal';
             dateInput.value = formattedDate;
             dateInput.required = true;
-            
             dateGroup.appendChild(dateLabel);
             dateGroup.appendChild(dateInput);
             formBody.appendChild(dateGroup);
 
-            // 2. Field untuk Keterangan
             const descHeader = currentHeaders.find(h => h.toLowerCase() === 'keterangan' || h.toLowerCase() === 'deskripsi') || 'Keterangan';
             const descGroup = document.createElement('div');
             descGroup.className = 'mb-3';
-            
             const descLabel = document.createElement('label');
             descLabel.htmlFor = 'input-keterangan';
             descLabel.className = 'form-label';
             descLabel.textContent = descHeader;
-            
             const descInput = document.createElement('input');
             descInput.type = 'text';
             descInput.className = 'form-control';
@@ -667,49 +658,38 @@
             descInput.name = 'keterangan';
             descInput.value = '';
             descInput.required = true;
-            
             descGroup.appendChild(descLabel);
             descGroup.appendChild(descInput);
             formBody.appendChild(descGroup);
 
-            // 3. Field untuk Jenis Transaksi
             const typeGroup = document.createElement('div');
             typeGroup.className = 'mb-3';
-            
             const typeLabel = document.createElement('label');
             typeLabel.htmlFor = 'input-jenis';
             typeLabel.className = 'form-label';
             typeLabel.textContent = 'Jenis Transaksi';
-            
             const typeSelect = document.createElement('select');
             typeSelect.className = 'form-select';
             typeSelect.id = 'input-jenis';
             typeSelect.name = 'jenis';
-            
             const pemasukanOption = document.createElement('option');
             pemasukanOption.value = 'pemasukkan';
             pemasukanOption.textContent = 'Pemasukkan';
-            
             const pengeluaranOption = document.createElement('option');
             pengeluaranOption.value = 'pengeluaran';
             pengeluaranOption.textContent = 'Pengeluaran';
-            
             typeSelect.appendChild(pemasukanOption);
             typeSelect.appendChild(pengeluaranOption);
-            
             typeGroup.appendChild(typeLabel);
             typeGroup.appendChild(typeSelect);
             formBody.appendChild(typeGroup);
 
-            // 4. Field untuk Jumlah
             const amountGroup = document.createElement('div');
             amountGroup.className = 'mb-3';
-            
             const amountLabel = document.createElement('label');
             amountLabel.htmlFor = 'input-jumlah';
             amountLabel.className = 'form-label';
             amountLabel.textContent = 'Jumlah';
-            
             const amountInput = document.createElement('input');
             amountInput.type = 'number';
             amountInput.className = 'form-control';
@@ -719,7 +699,6 @@
             amountInput.required = true;
             amountInput.min = '0';
             amountInput.step = '1000';
-            
             amountGroup.appendChild(amountLabel);
             amountGroup.appendChild(amountInput);
             formBody.appendChild(amountGroup);
@@ -743,16 +722,15 @@
                         }
                     }
                 } 
-                // *** LOGIKA DIPERBAIKI: Untuk UANG KAS ***
+                // *** LOGIKA DIPERBAIKI TOTAL: Untuk UANG KAS ***
                 else if (currentSheet === 'UANG KAS') {
-                    // Cari indeks kolom untuk setiap field
-                    const periodeIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'periode' || h.toLowerCase() === 'bulan');
-                    const tanggalIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'tanggal');
-                    const keteranganIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'keterangan' || h.toLowerCase() === 'deskripsi');
-                    const pemasukkanIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'pemasukkan');
-                    const pengeluaranIndex = currentHeaders.findIndex(h => h.toLowerCase() === 'pengeluaran');
+                    // Ambil data dari form
+                    const jenis = formData.get('jenis') || '';
+                    const jumlah = formData.get('jumlah') || '0';
+                    const tanggalValue = formData.get('tanggal') || '';
+                    const keteranganValue = formData.get('keterangan') || '';
                     
-                    // Fungsi helper untuk format "Bulan Tahun"
+                    // Helper untuk format "Bulan Tahun"
                     const formatBulanTahun = (dateString) => {
                         if (!dateString) return '';
                         const date = new Date(dateString);
@@ -760,34 +738,23 @@
                         return `${months[date.getMonth()]} ${date.getFullYear()}`;
                     };
 
-                    // Buat array values dengan urutan sesuai header
-                    for (let i = 1; i < currentHeaders.length; i++) {
-                        if (i === periodeIndex) {
-                            // Ambil nilai dari tanggal dan format menjadi "Bulan Tahun"
-                            const tanggalValue = formData.get('tanggal');
-                            values.push(formatBulanTahun(tanggalValue));
-                        } 
-                        else if (i === tanggalIndex) {
-                            values.push(formData.get('tanggal') || '');
-                        }
-                        else if (i === keteranganIndex) {
-                            values.push(formData.get('keterangan') || '');
-                        }
-                        else if (i === pemasukkanIndex || i === pengeluaranIndex) {
-                            const jenis = formData.get('jenis') || '';
-                            const jumlah = formData.get('jumlah') || '0';
-                            
-                            if ((i === pemasukkanIndex && jenis === 'pemasukkan') || 
-                                (i === pengeluaranIndex && jenis === 'pengeluaran')) {
-                                values.push(jumlah);
-                            } else {
-                                values.push('0');
-                            }
-                        }
-                        else {
-                            values.push('');
-                        }
-                    }
+                    // *** PERBAIKAN: Bangun array values berdasarkan urutan kolom yang PASTI ***
+                    // Urutan kolom yang diharapkan di Google Sheets:
+                    // ID, Periode, Tanggal, Keterangan, Pemasukkan, Pengeluaran
+                    // Kita akan membuat array untuk kolom ke-2 sampai ke-6.
+                    
+                    const pemasukkanValue = (jenis === 'pemasukkan') ? jumlah : '0';
+                    const pengeluaranValue = (jenis === 'pengeluaran') ? jumlah : '0';
+
+                    values = [
+                        formatBulanTahun(tanggalValue), // Untuk kolom "Periode"
+                        tanggalValue,                  // Untuk kolom "Tanggal"
+                        keteranganValue,                // Untuk kolom "Keterangan"
+                        pemasukkanValue,                // Untuk kolom "Pemasukkan" (Kolom 5)
+                        pengeluaranValue                // Untuk kolom "Pengeluaran" (Kolom 6)
+                    ];
+                    
+                    console.log('Data yang akan dikirim untuk UANG KAS:', values);
                 } 
                 else {
                     values = currentHeaders.map(header => {
