@@ -121,23 +121,27 @@
             font-size: 0.9rem;
         }
         .compact-table thead th {
-            width: 80px !important;
-            max-width: 80px !important;
-            min-width: 80px !important;
+            width: 70px !important; 
+            max-width: 70px !important;
+            min-width: 70px !important;
             padding: 5px !important;
             vertical-align: middle !important;
             text-align: center !important;
         }
         .compact-table th:first-child,
         .compact-table td:first-child {
-            width: 150px !important;
-            max-width: 150px !important;
-            min-width: 150px !important;
+            width: 130px !important; 
+            max-width: 130px !important;
+            min-width: 130px !important;
             text-align: left !important;
         }
         .compact-table tbody td:not(.icon-cell):not(.action-cell):not(:first-child) {
-            max-width: 80px !important;
+            max-width: 70px !important;
             text-align: center;
+        }
+        .compact-table .action-cell {
+            width: 110px !important;
+            max-width: 110px !important;
         }
 
         /* --- MEDIA QUERY UNTUK MOBILE --- */
@@ -283,7 +287,7 @@
     <script>
         // --- KONFIGURASI ---
         const SHEETS = ['PENGUMUMAN', 'UANG KAS', 'IURAN BULANAN', 'JADWAL RONDA']; 
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzwt_t4jiWMP1u14zk4DSZpwjR7iGFDrVMu1AjqOxQJHykfJyqG8KhupQTbUSD2CE0q/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzV_Qv3IfaSj-vCY5ugK0L2DGVbFtksJibOKIgPYBYagJfKIPNlaCb0yX3vOgoF9r1V/exec';
         
         // Sheet yang menggunakan ikon boolean
         const BOOLEAN_SHEETS = ['IURAN BULANAN', 'JADWAL RONDA'];
@@ -364,7 +368,6 @@
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
 
-            // Tambahkan atau hapus class 'compact-table'
             if (currentSheet === 'JADWAL RONDA') {
                 table.classList.add('compact-table');
             } else {
@@ -382,67 +385,47 @@
                 return;
             }
 
-            // *** PERUBAHAN LOGIKA UNTUK JADWAL RONDA ***
             let dataKeys = headers; 
             let displayHeaders = headers; 
 
             if (currentSheet === 'JADWAL RONDA') {
-                // Logika baru:
-                // 1. Kolom pertama
-                // 2. 8 kolom terakhir yang memiliki nilai true
-                // 3. 2 kolom setelahnya
-                // 4. Kolom "terakhir ronda"
-                
                 const firstHeader = headers[0];
                 let selectedColumns = [firstHeader];
                 
-                // Cari indeks kolom "terakhir ronda"
                 const lastRondaIndex = headers.findIndex(h => String(h).toLowerCase() === "terakhir ronda");
-                
-                // Cari 8 kolom terakhir yang memiliki nilai true, dari kanan ke kiri
-                let trueColumns = [];
-                // Mulai dari kolom kedua (indeks 1) hingga sebelum kolom "terakhir ronda" atau kolom terakhir
                 const searchLimit = (lastRondaIndex > 0) ? lastRondaIndex : headers.length - 1;
+                
+                let trueColumns = [];
                 for (let i = searchLimit - 1; i >= 1 && trueColumns.length < 8; i--) {
                     const columnName = headers[i];
-                    // Periksa apakah ada nilai true di kolom ini
                     const hasTrueValue = rows.some(row => row[columnName] === true);
                     if (hasTrueValue) {
                         trueColumns.unshift(columnName);
                     }
                 }
                 
-                // Tambahkan 8 kolom dengan nilai true
                 selectedColumns.push(...trueColumns);
                 
-                // Cari indeks kolom true terakhir yang ditambahkan
                 let lastTrueColumnIndex = 0;
                 if (trueColumns.length > 0) {
                     lastTrueColumnIndex = headers.indexOf(trueColumns[trueColumns.length - 1]);
                 }
 
-                // Tambahkan 2 kolom setelah kolom true terakhir
                 for (let i = 1; i <= 2; i++) {
                     const nextColumnIndex = lastTrueColumnIndex + i;
-                    // Pastikan indeks valid, bukan kolom pertama, dan bukan kolom "terakhir ronda"
                     if (nextColumnIndex > 0 && nextColumnIndex < headers.length && nextColumnIndex !== lastRondaIndex) {
                         selectedColumns.push(headers[nextColumnIndex]);
                     }
                 }
                 
-                // Tambahkan kolom "terakhir ronda" jika ditemukan dan belum ada
                 if (lastRondaIndex !== -1 && !selectedColumns.includes(headers[lastRondaIndex])) {
                     selectedColumns.push(headers[lastRondaIndex]);
                 }
                 
-                // Gunakan kolom yang dipilih sebagai kunci data
                 dataKeys = selectedColumns;
-                
-                // Hapus tahun dari teks header untuk ditampilkan
                 displayHeaders = dataKeys.map(h => String(h).replace(/-\d{4}$/, ''));
             }
 
-            // Buat header
             const headerRow = document.createElement('tr');
             displayHeaders.forEach(header => {
                 const th = document.createElement('th');
@@ -455,7 +438,6 @@
             headerRow.appendChild(thAction);
             tableHead.appendChild(headerRow);
 
-            // Buat baris data
             rows.forEach(row => {
                 const tr = document.createElement('tr');
                 dataKeys.forEach(dataKey => {
@@ -510,7 +492,14 @@
         function openCreateModal() {
             currentAction = 'create';
             document.getElementById('formModalLabel').innerText = `Tambah Data Baru ke ${currentSheet}`;
-            generateFormFields();
+            
+            // *** PERUBAHAN: Cek apakah perlu form sederhana ***
+            if (currentSheet === 'IURAN BULANAN' || currentSheet === 'JADWAL RONDA') {
+                generateSimplifiedFormFields();
+            } else {
+                generateFormFields();
+            }
+            
             new bootstrap.Modal(document.getElementById('formModal')).show();
         }
 
@@ -570,17 +559,72 @@
             });
         }
 
+        // *** FUNGSI BARU: UNTUK FORM SEDERHANA ***
+        function generateSimplifiedFormFields() {
+            const formBody = document.getElementById('formModalBody');
+            formBody.innerHTML = '';
+
+            if (currentHeaders.length === 0) {
+                formBody.innerHTML = '<p class="text-muted">Tidak ada kolom untuk diisi.</p>';
+                return;
+            }
+
+            const header = currentHeaders[0];
+            const formGroup = document.createElement('div');
+            formGroup.className = 'mb-3';
+            
+            const label = document.createElement('label');
+            label.htmlFor = `input-${header}`;
+            label.className = 'form-label';
+            label.textContent = header;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-control';
+            input.id = `input-${header}`;
+            input.name = header;
+            input.value = '';
+            input.required = true;
+            
+            formGroup.appendChild(label);
+            formGroup.appendChild(input);
+            formBody.appendChild(formGroup);
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'alert alert-info';
+            infoDiv.innerHTML = `<i class="bi bi-info-circle"></i> Kolom lainnya akan otomatis diisi.`;
+            formBody.appendChild(infoDiv);
+        }
+
         async function handleFormSubmit(event) {
             event.preventDefault();
             const form = event.target;
             const formData = new FormData(form);
-            const values = currentHeaders.map(header => {
-                const val = formData.get(header);
-                if (typeof form.elements[`input-${header}`]?.type === 'checkbox') {
-                    return val === 'on';
+            let values = [];
+
+            // *** PERUBAHAN: Logika khusus untuk create di IURAN BULANAN & JADWAL RONDA ***
+            if (currentAction === 'create' && (currentSheet === 'IURAN BULANAN' || currentSheet === 'JADWAL RONDA')) {
+                const firstColumnValue = formData.get(currentHeaders[0]) || '';
+                values = [firstColumnValue];
+
+                // Isi sisanya dengan false, kecuali "terakhir ronda"
+                for (let i = 1; i < currentHeaders.length; i++) {
+                    if (currentSheet === 'JADWAL RONDA' && String(currentHeaders[i]).toLowerCase() === 'terakhir ronda') {
+                        values.push(''); // Biarkan kosong, backend yang akan isi dengan rumus
+                    } else {
+                        values.push(false);
+                    }
                 }
-                return val || '';
-            });
+            } else {
+                // Logika asli untuk update atau sheet lain
+                values = currentHeaders.map(header => {
+                    const val = formData.get(header);
+                    if (typeof form.elements[`input-${header}`]?.type === 'checkbox') {
+                        return val === 'on';
+                    }
+                    return val || '';
+                });
+            }
             
             showLoader(true);
             let payload = {
