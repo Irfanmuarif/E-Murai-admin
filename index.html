@@ -116,28 +116,27 @@
             pointer-events: none;
         }
 
-        /* --- STYLE KHUSUS UNTUK JADWAL RONDA (DIPERBAIKI) --- */
+        /* --- STYLE KHUSUS UNTUK JADWAL RONDA --- */
         .compact-table {
             font-size: 0.9rem;
         }
-        /* *** PERUBAHAN: Header tidak lagi diputar dan diperkecil *** */
         .compact-table thead th {
-            width: 80px !important; /* Diperbesar sedikit untuk teks horizontal */
+            width: 80px !important;
             max-width: 80px !important;
             min-width: 80px !important;
             padding: 5px !important;
-            vertical-align: middle !important; /* Diubah ke middle */
-            text-align: center !important; /* Teks di tengah */
+            vertical-align: middle !important;
+            text-align: center !important;
         }
         .compact-table th:first-child,
         .compact-table td:first-child {
             width: 150px !important;
             max-width: 150px !important;
             min-width: 150px !important;
-            text-align: left !important; /* Kolom nama rata kiri */
+            text-align: left !important;
         }
         .compact-table tbody td:not(.icon-cell):not(.action-cell):not(:first-child) {
-            max-width: 80px !important; /* Sesuaikan dengan lebar th */
+            max-width: 80px !important;
             text-align: center;
         }
 
@@ -345,7 +344,7 @@
                 }
                 
                 currentHeaders = result.headers;
-                tableData = result.rows; // Kembalikan ke semua data, filtering di renderTable
+                tableData = result.rows;
                 renderTable(result.headers, result.rows);
                 
             } catch (error) {
@@ -383,14 +382,61 @@
                 return;
             }
 
-            // *** PERUBAHAN: Proses header dan kolom untuk tampilan JADWAL RONDA ***
-            let dataKeys = headers; // Kunci asli untuk akses data
-            let displayHeaders = headers; // Teks untuk ditampilkan di UI
+            // *** PERUBAHAN LOGIKA UNTUK JADWAL RONDA ***
+            let dataKeys = headers; 
+            let displayHeaders = headers; 
 
             if (currentSheet === 'JADWAL RONDA') {
+                // Logika baru:
+                // 1. Kolom pertama
+                // 2. 8 kolom terakhir yang memiliki nilai true
+                // 3. 2 kolom setelahnya
+                // 4. Kolom "terakhir ronda"
+                
                 const firstHeader = headers[0];
-                const lastTenHeaders = headers.slice(-10);
-                dataKeys = [firstHeader, ...lastTenHeaders];
+                let selectedColumns = [firstHeader];
+                
+                // Cari indeks kolom "terakhir ronda"
+                const lastRondaIndex = headers.findIndex(h => String(h).toLowerCase() === "terakhir ronda");
+                
+                // Cari 8 kolom terakhir yang memiliki nilai true, dari kanan ke kiri
+                let trueColumns = [];
+                // Mulai dari kolom kedua (indeks 1) hingga sebelum kolom "terakhir ronda" atau kolom terakhir
+                const searchLimit = (lastRondaIndex > 0) ? lastRondaIndex : headers.length - 1;
+                for (let i = searchLimit - 1; i >= 1 && trueColumns.length < 8; i--) {
+                    const columnName = headers[i];
+                    // Periksa apakah ada nilai true di kolom ini
+                    const hasTrueValue = rows.some(row => row[columnName] === true);
+                    if (hasTrueValue) {
+                        trueColumns.unshift(columnName);
+                    }
+                }
+                
+                // Tambahkan 8 kolom dengan nilai true
+                selectedColumns.push(...trueColumns);
+                
+                // Cari indeks kolom true terakhir yang ditambahkan
+                let lastTrueColumnIndex = 0;
+                if (trueColumns.length > 0) {
+                    lastTrueColumnIndex = headers.indexOf(trueColumns[trueColumns.length - 1]);
+                }
+
+                // Tambahkan 2 kolom setelah kolom true terakhir
+                for (let i = 1; i <= 2; i++) {
+                    const nextColumnIndex = lastTrueColumnIndex + i;
+                    // Pastikan indeks valid, bukan kolom pertama, dan bukan kolom "terakhir ronda"
+                    if (nextColumnIndex > 0 && nextColumnIndex < headers.length && nextColumnIndex !== lastRondaIndex) {
+                        selectedColumns.push(headers[nextColumnIndex]);
+                    }
+                }
+                
+                // Tambahkan kolom "terakhir ronda" jika ditemukan dan belum ada
+                if (lastRondaIndex !== -1 && !selectedColumns.includes(headers[lastRondaIndex])) {
+                    selectedColumns.push(headers[lastRondaIndex]);
+                }
+                
+                // Gunakan kolom yang dipilih sebagai kunci data
+                dataKeys = selectedColumns;
                 
                 // Hapus tahun dari teks header untuk ditampilkan
                 displayHeaders = dataKeys.map(h => String(h).replace(/-\d{4}$/, ''));
@@ -400,7 +446,6 @@
             const headerRow = document.createElement('tr');
             displayHeaders.forEach(header => {
                 const th = document.createElement('th');
-                // *** PERUBAHAN: Tidak perlu div wrapper lagi karena tidak diputar ***
                 th.textContent = header;
                 headerRow.appendChild(th);
             });
@@ -413,7 +458,7 @@
             // Buat baris data
             rows.forEach(row => {
                 const tr = document.createElement('tr');
-                dataKeys.forEach(dataKey => { // Gunakan dataKeys untuk iterasi
+                dataKeys.forEach(dataKey => {
                     const td = document.createElement('td');
                     const cellValue = row[dataKey];
 
@@ -430,7 +475,6 @@
                             icon.title = 'Belum Selesai. Klik untuk ubah.';
                         }
                         
-                        // Gunakan dataKey asli untuk API call
                         icon.onclick = () => toggleBoolean(row._row, dataKey, icon);
                         td.appendChild(icon);
                     } else {
