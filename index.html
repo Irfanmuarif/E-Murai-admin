@@ -40,7 +40,49 @@
             font-family: 'Inter', sans-serif;
             color: var(--text-main);
             -webkit-font-smoothing: antialiased;
-            padding-bottom: 100px; /* Space for bottom nav */
+            padding-bottom: 100px;
+            margin: 0;
+        }
+
+        /* --- LOGIN OVERLAY --- */
+        #loginSection {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(240, 242, 245, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .login-card {
+            background: var(--surface);
+            padding: 40px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-float);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+        .login-icon {
+            font-size: 3rem;
+            color: #6366f1;
+            margin-bottom: 20px;
+            display: inline-block;
+            padding: 20px;
+            background: #e0e7ff;
+            border-radius: 50%;
+        }
+
+        /* --- MAIN APP CONTAINER --- */
+        /* Secara default sembunyikan sampai login sukses */
+        #appContainer {
+            display: none; 
         }
 
         /* --- NAVBAR --- */
@@ -533,124 +575,206 @@
 </head>
 <body>
 
-    <!-- Loader -->
-    <div id="loader" class="loader" style="display: none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:2000; justify-content:center; align-items:center;">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+    <!-- LOGIN OVERLAY -->
+    <div id="loginSection">
+        <div class="login-card">
+            <div class="login-icon">
+                <i class="bi bi-lock-fill"></i>
+            </div>
+            <h3 class="fw-bold mb-1">Admin Login</h3>
+            <p class="text-muted mb-4">Masukkan password untuk akses data.</p>
+            
+            <div class="mb-3 text-start">
+                <label for="adminPassword" class="form-label fw-semibold">Password</label>
+                <input type="password" class="form-control form-control-lg" id="adminPassword" placeholder="Masukkan password...">
+            </div>
+            
+            <button onclick="checkLogin()" class="btn btn-primary-custom w-100 py-2">
+                Masuk Dashboard
+            </button>
+            <div id="loginError" class="text-danger mt-3" style="display:none;">Password salah!</div>
         </div>
     </div>
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-light">
-        <div class="container-fluid px-3 px-md-5">
-            <span class="navbar-brand">
-                <i class="bi bi-grid-1x2-fill"></i>
-                <span>Admin Panel E-murai</span>
-            </span>
-            <div class="d-flex align-items-center">
-                <!-- Space reserved if needed -->
+    <!-- WRAPPER SELURUH APLIKASI (Disembunyikan sampai login) -->
+    <div id="appContainer">
+
+        <!-- Loader -->
+        <div id="loader" class="loader" style="display: none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:2000; justify-content:center; align-items:center;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
             </div>
         </div>
-    </nav>
 
-    <!-- Alert Container -->
-    <div class="alert-container container px-3 mt-3" id="alertContainer"></div>
-
-    <!-- Main Content -->
-    <main class="container">
-        <div class="content-wrapper">
-            <!-- Konten Tab -->
-            <div class="tab-content" id="sheetTabContent">
-                
-                <!-- Header Tombol Tambah (Standard) -->
-                <div class="d-flex justify-content-between align-items-center mb-4 px-1" id="actionHeader">
-                    <h2 class="h4 fw-bold text-dark">Data Tabel</h2>
-                    <button class="btn btn-primary-custom btn-sm" onclick="openCreateModal()">
-                        <i class="bi bi-plus-lg me-1"></i> Tambah Data
-                    </button>
-                </div>
-
-                <!-- Wadah untuk Tabel Biasa -->
-                <div class="table-responsive d-none p-0" id="standardTableContainer" style="background: white; border-radius: 12px; box-shadow: var(--shadow-sm);">
-                    <table class="table table-hover align-middle" id="dataTable">
-                        <thead>
-                            <!-- Header akan di-generate oleh JavaScript -->
-                        </thead>
-                        <tbody>
-                            <!-- Baris data akan di-generate oleh JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Wadah untuk Uang Kas (Grouped Tables) -->
-                <div id="uangKasContainer"></div>
-
-                <!-- Wadah untuk Pengumuman (List Cards) -->
-                <div id="pengumumanContainer"></div>
-
-            </div>
-        </div>
-    </main>
-
-    <!-- BOTTOM NAV (TEXT & ICON) -->
-    <div class="bottom-nav-wrapper">
-        <ul class="nav nav-tabs bottom-tabs" id="sheetTabs" role="tablist">
-            <!-- Tab akan di-generate oleh JavaScript -->
-        </ul>
-    </div>
-
-    <!-- Modal Create/Update -->
-    <div class="modal fade" id="formModal" tabindex="-1" aria-labelledby="formModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="formModalLabel">Tambah Data Baru</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form id="dataForm">
-                    <div class="modal-body" id="formModalBody">
-                        <!-- Input form akan di-generate oleh JavaScript -->
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light fw-semibold" data-bs-dismiss="modal" style="border: 1px solid #d1d5db;">Batal</button>
-                        <button type="submit" class="btn btn-primary-custom">Simpan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Delete Confirmation -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold text-danger" id="deleteModalLabel">Hapus Data?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-secondary">Data yang dihapus tidak dapat dikembalikan.</p>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-light w-100 fw-semibold" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-danger w-100" id="confirmDeleteBtn">
-                        <i class="bi bi-trash"></i> Hapus
+        <!-- Navbar -->
+        <nav class="navbar navbar-light">
+            <div class="container-fluid px-3 px-md-5">
+                <span class="navbar-brand">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                    <span>Admin Panel E-murai</span>
+                </span>
+                <div class="d-flex align-items-center">
+                    <!-- Tombol Logout (Kecil) -->
+                    <button onclick="logout()" class="btn btn-sm btn-outline-secondary me-2" title="Logout">
+                        <i class="bi bi-box-arrow-right"></i>
                     </button>
                 </div>
             </div>
+        </nav>
+
+        <!-- Alert Container -->
+        <div class="alert-container container px-3 mt-3" id="alertContainer"></div>
+
+        <!-- Main Content -->
+        <main class="container">
+            <div class="content-wrapper">
+                <!-- Konten Tab -->
+                <div class="tab-content" id="sheetTabContent">
+                    
+                    <!-- Header Tombol Tambah (Standard) -->
+                    <div class="d-flex justify-content-between align-items-center mb-4 px-1" id="actionHeader">
+                        <h2 class="h4 fw-bold text-dark">Data Tabel</h2>
+                        <button class="btn btn-primary-custom btn-sm" onclick="openCreateModal()">
+                            <i class="bi bi-plus-lg me-1"></i> Tambah Data
+                        </button>
+                    </div>
+
+                    <!-- Wadah untuk Tabel Biasa -->
+                    <div class="table-responsive d-none p-0" id="standardTableContainer" style="background: white; border-radius: 12px; box-shadow: var(--shadow-sm);">
+                        <table class="table table-hover align-middle" id="dataTable">
+                            <thead>
+                                <!-- Header akan di-generate oleh JavaScript -->
+                            </thead>
+                            <tbody>
+                                <!-- Baris data akan di-generate oleh JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Wadah untuk Uang Kas (Grouped Tables) -->
+                    <div id="uangKasContainer"></div>
+
+                    <!-- Wadah untuk Pengumuman (List Cards) -->
+                    <div id="pengumumanContainer"></div>
+
+                </div>
+            </div>
+        </main>
+
+        <!-- BOTTOM NAV (TEXT & ICON) -->
+        <div class="bottom-nav-wrapper">
+            <ul class="nav nav-tabs bottom-tabs" id="sheetTabs" role="tablist">
+                <!-- Tab akan di-generate oleh JavaScript -->
+            </ul>
         </div>
-    </div>
+
+        <!-- Modal Create/Update -->
+        <div class="modal fade" id="formModal" tabindex="-1" aria-labelledby="formModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="formModalLabel">Tambah Data Baru</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="dataForm">
+                        <div class="modal-body" id="formModalBody">
+                            <!-- Input form akan di-generate oleh JavaScript -->
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light fw-semibold" data-bs-dismiss="modal" style="border: 1px solid #d1d5db;">Batal</button>
+                            <button type="submit" class="btn btn-primary-custom">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Delete Confirmation -->
+        <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold text-danger" id="deleteModalLabel">Hapus Data?</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-secondary">Data yang dihapus tidak dapat dikembalikan.</p>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light w-100 fw-semibold" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-danger w-100" id="confirmDeleteBtn">
+                            <i class="bi bi-trash"></i> Hapus
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- End App Container -->
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // --- KONFIGURASI ---
+        // --- CONFIG LOGIN ---
+        // GANTI PASSWORD DI SINI
+        const ADMIN_PASSWORD = "admin123";
+        
+        // Cek apakah user sudah login sebelumnya
+        document.addEventListener('DOMContentLoaded', () => {
+            const isLoggedin = localStorage.getItem('isAdminLogged');
+            if (isLoggedin === 'true') {
+                showApp();
+            } else {
+                // Biarkan tampilan login
+                document.getElementById('adminPassword').focus();
+            }
+        });
+
+        function checkLogin() {
+            const inputPass = document.getElementById('adminPassword').value;
+            const errorMsg = document.getElementById('loginError');
+
+            if (inputPass === ADMIN_PASSWORD) {
+                // Password Benar
+                localStorage.setItem('isAdminLogged', 'true'); // Ingat user
+                showApp();
+            } else {
+                // Password Salah
+                errorMsg.style.display = 'block';
+                document.getElementById('adminPassword').classList.add('is-invalid');
+                
+                // Shake effect
+                const card = document.querySelector('.login-card');
+                card.style.transform = 'translateX(10px)';
+                setTimeout(() => card.style.transform = 'translateX(-10px)', 100);
+                setTimeout(() => card.style.transform = 'translateX(0)', 200);
+            }
+        }
+
+        function showApp() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            // Inisialisasi App setelah login
+            initializeApp();
+        }
+
+        function logout() {
+            localStorage.removeItem('isAdminLogged');
+            location.reload();
+        }
+
+        // --- KONFIGURASI APP UTAMA ---
+        function initializeApp() {
+            initializeTabs();
+            loadData(SHEETS[0]);
+            document.getElementById('dataForm').addEventListener('submit', handleFormSubmit);
+            document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+        }
+
         const SHEETS = ['PENGUMUMAN', 'UANG KAS', 'IURAN BULANAN', 'JADWAL RONDA']; 
-        // UPDATE: Menggunakan API URL Terbaru
         const API_URL = 'https://script.google.com/macros/s/AKfycbygmCF0fjpkSiBDPz4kNNtNjfxR0CZu_qcF19V5NTxegnx0Os3-UfpPh4PV1KUsUBA4/exec';
         
-        // Sheet yang menggunakan ikon boolean
         const BOOLEAN_SHEETS = ['IURAN BULANAN', 'JADWAL RONDA'];
 
         let currentHeaders = [];
@@ -659,44 +783,28 @@
         let currentSheet = SHEETS[0];
         let tableData = []; 
 
-        // --- EVENT LISTENERS ---
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeTabs();
-            loadData(currentSheet);
-            
-            document.getElementById('dataForm').addEventListener('submit', handleFormSubmit);
-            document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
-        });
-
-        // --- INISIALISASI TAB (TEXT + ICON) ---
         function initializeTabs() {
             const tabList = document.getElementById('sheetTabs');
             SHEETS.forEach((sheetName, index) => {
                 const li = document.createElement('li');
                 li.className = 'nav-item';
                 li.setAttribute('role', 'presentation');
-
                 const button = document.createElement('button');
                 button.className = `nav-link ${index === 0 ? 'active' : ''}`;
                 button.setAttribute('type', 'button');
                 button.setAttribute('role', 'tab');
                 button.setAttribute('title', sheetName);
-                
-                // Icon Mapping
                 let iconClass = 'bi-grid';
                 if (sheetName === 'PENGUMUMAN') iconClass = 'bi-megaphone-fill';
                 else if (sheetName === 'UANG KAS') iconClass = 'bi-wallet2';
                 else if (sheetName === 'IURAN BULANAN') iconClass = 'bi-calendar-check';
                 else if (sheetName === 'JADWAL RONDA') iconClass = 'bi-shield-check';
 
-                // Struktur Icon + Text
                 button.innerHTML = `
                     <div><i class="bi ${iconClass}"></i></div>
                     <span class="tab-text">${sheetName}</span>
                 `;
-                
                 button.onclick = () => switchSheet(sheetName, button);
-
                 li.appendChild(button);
                 tabList.appendChild(li);
             });
@@ -706,48 +814,45 @@
             document.querySelectorAll('#sheetTabs .nav-link').forEach(btn => btn.classList.remove('active'));
             buttonElement.classList.add('active');
             currentSheet = sheetName;
-            
             loadData(currentSheet);
         }
 
-        // --- FUNGSI UTILITAS TANGGAL ---
         function formatDateDisplay(value) {
             if (!value) return '';
-            
             if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
                 return value;
             }
-
-            let dateObj;
-            if (typeof value === 'string') {
-                dateObj = new Date(value);
-            } else if (value instanceof Date) {
-                dateObj = value;
-            } else {
-                return value; 
-            }
-
+            let dateObj = (typeof value === 'string') ? new Date(value) : value;
+            if (value instanceof Date) dateObj = value;
+            else return value; 
             if (isNaN(dateObj.getTime())) return value; 
-
             return dateObj.toLocaleDateString('en-CA'); 
         }
 
-        // --- FUNGSI-FUNGSI UTAMA ---
+        function formatDateForInput(value) {
+            if (!value) return '';
+            let d;
+            if (typeof value === 'string') {
+                d = new Date(value);
+            } else if (value instanceof Date) {
+                d = value;
+            } else {
+                return '';
+            }
+            if (isNaN(d.getTime())) return '';
+            const date = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+            return date.toISOString().split('T')[0];
+        }
 
         async function loadData(sheetName) {
             showLoader(true);
             try {
                 const response = await fetch(`${API_URL}?sheet=${sheetName}`);
                 const result = await response.json();
-                
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-                
+                if (result.error) throw new Error(result.error);
                 currentHeaders = result.headers;
                 tableData = result.rows;
                 renderTable(result.headers, result.rows);
-                
             } catch (error) {
                 showAlert('Gagal memuat data: ' + error.message, 'danger');
                 document.querySelector('#dataTable thead').innerHTML = '';
@@ -764,29 +869,23 @@
             const uangKasContainer = document.getElementById('uangKasContainer');
             const pengumumanContainer = document.getElementById('pengumumanContainer');
             const actionHeader = document.getElementById('actionHeader');
-            const contentArea = document.getElementById('sheetTabContent');
             
             standardContainer.classList.add('d-none');
             standardContainer.classList.remove('d-block');
             uangKasContainer.innerHTML = '';
             pengumumanContainer.innerHTML = '';
-            
-            // Reset Action Header
             actionHeader.classList.add('d-none');
             
-            // Jika PENGUMUMAN: Render List Cards (Sebagian)
             if (currentSheet === 'PENGUMUMAN') {
                 renderPengumumanPartial(rows, pengumumanContainer);
                 return; 
             }
             
-            // UANG KAS LOGIC
             if (currentSheet === 'UANG KAS') {
                 renderUangKasGrouped(headers, rows, uangKasContainer);
                 return;
             }
 
-            // STANDARD TABLE LOGIC (Others)
             actionHeader.classList.remove('d-none');
             standardContainer.classList.remove('d-none');
             standardContainer.classList.add('d-block');
@@ -796,44 +895,21 @@
         function fillStandardTable(tableElement, headers, rows) {
             const tableHead = tableElement.querySelector('thead');
             const tableBody = tableElement.querySelector('tbody');
-            
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
-
-            if (headers.length === 0) {
-                renderEmptyState(tableBody);
-                return;
-            }
+            if (headers.length === 0) return renderEmptyState(tableBody);
 
             let workingRows = [...rows];
             let dataKeys = headers; 
             let displayHeaders = headers; 
 
-            // LOGIKA KHUSUS JADWAL RONDA
             if (currentSheet === 'JADWAL RONDA') {
-                // 1. Rename "Terakhir Ronda" -> "Hari"
                 const renamedHeaders = headers.map(h => String(h).toLowerCase() === "terakhir ronda" ? "Hari" : h);
-                
-                // 2. Shorten Date Headers ("03-Jan-2026" -> "03-Jan")
-                displayHeaders = renamedHeaders.map(h => {
-                    if (typeof h !== 'string') return h;
-                    // Regex cari pola tanggal
-                    if (/^\d{2}-\w{3}-\d{4}$/.test(h)) {
-                        return h.substring(0, 6); 
-                    }
-                    return h;
-                });
-
-                // Sort by 'Terakhir Ronda' (renamed to "Hari") Descending
+                displayHeaders = renamedHeaders.map(h => (typeof h !== 'string') ? h : (/^\d{2}-\w{3}-\d{4}$/.test(h) ? h.substring(0, 6) : h));
                 const lastRondaIndex = renamedHeaders.findIndex(h => String(h).toLowerCase() === "hari"); 
                 if (lastRondaIndex !== -1) {
                     const originalHeaderKey = headers[lastRondaIndex]; 
-                    
-                    workingRows.sort((a, b) => {
-                        const valA = parseInt(a[originalHeaderKey]) || 0;
-                        const valB = parseInt(b[originalHeaderKey]) || 0;
-                        return valB - valA; 
-                    });
+                    workingRows.sort((a, b) => (parseInt(b[originalHeaderKey]) || 0) - (parseInt(a[originalHeaderKey]) || 0));
                 }
             }
 
@@ -851,23 +927,15 @@
 
             workingRows.forEach(row => {
                 const tr = document.createElement('tr');
-                // Mapping displayHeaders ke keys asli
                 dataKeys.forEach((originalKey, idx) => {
-                    const displayHeader = displayHeaders[idx];
                     const td = document.createElement('td');
                     const cellValue = row[originalKey];
                     
                     if (BOOLEAN_SHEETS.includes(currentSheet) && typeof cellValue === 'boolean') {
                         td.className = 'text-center';
                         const icon = document.createElement('i');
-                        icon.className = 'clickable-icon bi ';
-                        if (cellValue) {
-                            icon.className += 'bi-check-circle-fill text-success fs-5';
-                            icon.title = 'Selesai. Klik untuk ubah.';
-                        } else {
-                            icon.className += 'bi-circle text-muted fs-5';
-                            icon.title = 'Belum Selesai. Klik untuk ubah.';
-                        }
+                        icon.className = 'clickable-icon bi ' + (cellValue ? 'bi-check-circle-fill text-success fs-5' : 'bi-circle text-muted fs-5');
+                        icon.title = cellValue ? 'Selesai. Klik untuk ubah.' : 'Belum Selesai. Klik untuk ubah.';
                         icon.onclick = () => toggleBoolean(row._row, originalKey, icon);
                         td.appendChild(icon);
                     } else {
@@ -884,12 +952,8 @@
                 } else {
                     actionButtonsHTML = `
                         <div class="btn-group" role="group">
-                            <button class="btn btn-outline-warning btn-sm" onclick="openUpdateModal(${row._row}, ${JSON.stringify(row).replace(/"/g, '&quot;')})">
-                                <i class="bi bi-pencil-fill"></i>
-                            </button>
-                            <button class="btn btn-outline-danger btn-sm" onclick="openDeleteModal(${row._row})">
-                                <i class="bi bi-trash-fill"></i>
-                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="openUpdateModal(${row._row}, ${JSON.stringify(row).replace(/"/g, '&quot;')})"><i class="bi bi-pencil-fill"></i></button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="openDeleteModal(${row._row})"><i class="bi bi-trash-fill"></i></button>
                         </div>
                     `;
                 }
@@ -898,18 +962,14 @@
                 tableBody.appendChild(tr);
             });
             
-            // Scroll Logic for Mobile Jadwal Ronda
             if (currentSheet === 'JADWAL RONDA' && window.innerWidth <= 768) {
                 setTimeout(() => {
                     const container = tableElement.closest('.table-responsive');
-                    if (container && container.scrollWidth > container.clientWidth) {
-                        container.scrollLeft = container.scrollWidth;
-                    }
+                    if (container && container.scrollWidth > container.clientWidth) container.scrollLeft = container.scrollWidth;
                 }, 100);
             }
         }
 
-        // --- FUNGSI RENDER PENGUMUMAN (SUDAH DIPERBAIKI) ---
         function renderPengumumanPartial(rows, container) {
             if (rows.length === 0) {
                 container.innerHTML = '<div class="text-center py-5 text-muted">Tidak ada pengumuman.</div>';
@@ -919,46 +979,27 @@
             rows.forEach(row => {
                 const card = document.createElement('div');
                 card.className = 'pengumuman-item';
-                
-                // --- PERBAIKAN LOGIKA DISINI ---
-                // Menggunakan currentHeaders yang urutannya sesuai kolom sheet (0=A, 1=B, 2=C, 3=D)
-                // Judul ada di kolom ke-3 (Index 2)
-                // Isi ada di kolom ke-4 (Index 3)
-                // Tanggal (opsional) kita ambil dari kolom ke-2 (Index 1) jika ada
-                
-                const judulKey = currentHeaders[2]; 
-                const isiKey = currentHeaders[3];
-                const dateKey = currentHeaders[1]; 
+                const judulKey = currentHeaders[2]; // Kolom ke-3 (Index 2)
+                const isiKey = currentHeaders[3];    // Kolom ke-4 (Index 3)
+                const dateKey = currentHeaders[1];   // Kolom ke-2 (Index 1)
 
                 const judul = (judulKey) ? (row[judulKey] || "Tanpa Judul") : "Format Data Salah (Judul)";
                 const isi = (isiKey) ? (row[isiKey] || "") : "";
-                
                 let dateStr = "";
-                if(dateKey && row[dateKey]) {
-                     dateStr = formatDateDisplay(row[dateKey]);
-                }
+                if(dateKey && row[dateKey]) dateStr = formatDateDisplay(row[dateKey]);
 
                 card.innerHTML = `
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div class="pengumuman-title">${judul}</div>
                         <small class="text-muted" style="font-size:0.8rem;">${dateStr}</small>
                     </div>
-                    <div class="pengumuman-body truncated" id="pengumuman-body-${row._row}">
-                        ${isi}
-                    </div>
+                    <div class="pengumuman-body truncated" id="pengumuman-body-${row._row}">${isi}</div>
                     <div class="text-end">
-                        <button class="pengumuman-btn-toggle" onclick="togglePengumuman(${row._row}, this)">
-                            Baca Selengkapnya...
-                        </button>
+                        <button class="pengumuman-btn-toggle" onclick="togglePengumuman(${row._row}, this)">Baca Selengkapnya...</button>
                     </div>
-                    <!-- Tombol Edit/Hapus (Optional, jika pengumuman mau diedit) -->
                     <div class="mt-2 pt-2 border-top d-flex justify-content-end gap-2">
-                        <button class="btn btn-sm btn-outline-warning" onclick="openUpdateModal(${row._row}, ${JSON.stringify(row).replace(/"/g, '&quot;')})">
-                            <i class="bi bi-pencil-fill"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="openDeleteModal(${row._row})">
-                            <i class="bi bi-trash-fill"></i>
-                        </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="openUpdateModal(${row._row}, ${JSON.stringify(row).replace(/"/g, '&quot;')})"><i class="bi bi-pencil-fill"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="openDeleteModal(${row._row})"><i class="bi bi-trash-fill"></i></button>
                     </div>
                 `;
                 container.appendChild(card);
@@ -976,17 +1017,12 @@
             }
         }
 
-        // --- FUNGSI KHUSUS RENDER UANG KAS (GROUPED & COLLAPSIBLE) ---
         function renderUangKasGrouped(headers, rows, container) {
             let grandTotal = 0;
             const keyMasuk = headers.find(h => h.toLowerCase().includes('pemasukkan')) || headers[4];
             const keyKeluar = headers.find(h => h.toLowerCase().includes('pengeluaran')) || headers[5];
 
-            rows.forEach(r => {
-                const masuk = parseFloat(r[keyMasuk]) || 0;
-                const keluar = parseFloat(r[keyKeluar]) || 0;
-                grandTotal += (masuk - keluar);
-            });
+            rows.forEach(r => grandTotal += ((parseFloat(r[keyMasuk]) || 0) - (parseFloat(r[keyKeluar]) || 0)));
 
             const controlBar = document.createElement('div');
             controlBar.className = 'uangkas-control-bar';
@@ -1018,14 +1054,9 @@
 
             const formatPeriodeDisplay = (rawVal) => {
                 if (!rawVal) return 'Tanpa Periode';
-                
-                if (typeof rawVal === 'string' && !rawVal.includes('T') && isNaN(new Date(rawVal).getTime())) {
-                    return rawVal;
-                }
-
+                if (typeof rawVal === 'string' && !rawVal.includes('T') && isNaN(new Date(rawVal).getTime())) return rawVal;
                 const dateObj = new Date(rawVal);
                 if (isNaN(dateObj.getTime())) return String(rawVal);
-
                 return dateObj.toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' });
             };
 
@@ -1033,35 +1064,21 @@
                 const rawPeriode = row[keyPeriode];
                 const displayPeriode = formatPeriodeDisplay(rawPeriode);
                 const refDate = row[keyTanggal] ? new Date(row[keyTanggal]) : new Date(0);
-
-                if (!acc[displayPeriode]) {
-                    acc[displayPeriode] = {
-                        rows: [],
-                        sortDate: refDate
-                    };
-                }
+                if (!acc[displayPeriode]) { acc[displayPeriode] = { rows: [], sortDate: refDate }; }
                 acc[displayPeriode].rows.push(row);
-                if (refDate > acc[displayPeriode].sortDate) {
-                    acc[displayPeriode].sortDate = refDate;
-                }
+                if (refDate > acc[displayPeriode].sortDate) acc[displayPeriode].sortDate = refDate;
                 return acc;
             }, {});
 
-            const sortedPeriodKeys = Object.keys(groups).sort((a, b) => {
-                return groups[b].sortDate - groups[a].sortDate;
-            });
+            const sortedPeriodKeys = Object.keys(groups).sort((a, b) => groups[b].sortDate - groups[a].sortDate);
 
             sortedPeriodKeys.forEach((periode, index) => {
                 const groupData = groups[periode];
                 const groupRows = groupData.rows;
-                let totalMasuk = 0;
-                let totalKeluar = 0;
+                let totalMasuk = 0, totalKeluar = 0;
                 
-                groupRows.sort((a, b) => {
-                    const dateA = a[keyTanggal] ? new Date(a[keyTanggal]) : new Date(0);
-                    const dateB = b[keyTanggal] ? new Date(b[keyTanggal]) : new Date(0);
-                    return dateB - dateA;
-                });
+                groupRows.forEach(r => { totalMasuk += (parseFloat(r[keyMasuk]) || 0); totalKeluar += (parseFloat(r[keyKeluar]) || 0); });
+                const saldo = totalMasuk - totalKeluar;
 
                 const collapseId = `collapse-${periode.replace(/\s+/g, '-')}`;
                 const isTopCard = (index === 0);
@@ -1072,30 +1089,16 @@
                 const card = document.createElement('div');
                 card.className = 'uangkas-period-card';
 
-                groupRows.forEach(r => {
-                    const masuk = parseFloat(r[keyMasuk]) || 0;
-                    const keluar = parseFloat(r[keyKeluar]) || 0;
-                    totalMasuk += masuk;
-                    totalKeluar += keluar;
-                });
-                const saldo = totalMasuk - totalKeluar;
-
                 const cardHeader = document.createElement('div');
                 cardHeader.className = `uangkas-period-header ${headerCollapsedClass}`;
                 cardHeader.setAttribute('data-bs-toggle', 'collapse');
                 cardHeader.setAttribute('data-bs-target', `#${collapseId}`);
                 cardHeader.setAttribute('aria-expanded', ariaExpanded);
                 cardHeader.setAttribute('aria-controls', collapseId);
-                
                 cardHeader.innerHTML = `
-                    <div class="uangkas-period-title">
-                        <div class="uangkas-period-icon"><i class="bi bi-calendar-event"></i></div>
-                        <span>${periode}</span>
-                    </div>
+                    <div class="uangkas-period-title"><div class="uangkas-period-icon"><i class="bi bi-calendar-event"></i></div><span>${periode}</span></div>
                     <div class="d-flex align-items-center">
-                        <div class="uangkas-period-saldo me-3">
-                            Saldo: Rp ${saldo.toLocaleString('id-ID')}
-                        </div>
+                        <div class="uangkas-period-saldo me-3">Saldo: Rp ${saldo.toLocaleString('id-ID')}</div>
                         <i class="bi bi-chevron-down chevron-icon"></i>
                     </div>
                 `;
@@ -1103,43 +1106,26 @@
                 const collapseDiv = document.createElement('div');
                 collapseDiv.id = collapseId;
                 collapseDiv.className = `collapse ${bodyShowClass}`;
-                
                 const tableWrapper = document.createElement('div');
                 tableWrapper.className = 'table-responsive'; 
-                
                 const table = document.createElement('table');
                 table.className = 'table table-hover align-middle';
-
                 const thead = document.createElement('thead');
-                thead.innerHTML = `
-                    <tr>
-                        <th>Tanggal</th>
-                        <th style="min-width: 200px;">Keterangan</th>
-                        <th class="text-end">Masuk</th>
-                        <th class="text-end">Keluar</th>
-                        <th class="text-end">Aksi</th>
-                    </tr>
-                `;
+                thead.innerHTML = `<tr><th>Tanggal</th><th style="min-width: 200px;">Keterangan</th><th class="text-end">Masuk</th><th class="text-end">Keluar</th><th class="text-end">Aksi</th></tr>`;
                 table.appendChild(thead);
-
                 const tbody = document.createElement('tbody');
+                
                 groupRows.forEach(row => {
                     const tr = document.createElement('tr');
-                    const displayDate = formatDateDisplay(row[keyTanggal]);
-                    
                     tr.innerHTML = `
-                        <td class="fw-bold text-secondary">${displayDate}</td>
+                        <td class="fw-bold text-secondary">${formatDateDisplay(row[keyTanggal])}</td>
                         <td>${row[keyKet] || ''}</td>
                         <td class="text-end text-success fw-semibold">${row[keyMasuk] ? parseInt(row[keyMasuk]).toLocaleString('id-ID') : '-'}</td>
                         <td class="text-end text-danger fw-semibold">${row[keyKeluar] ? parseInt(row[keyKeluar]).toLocaleString('id-ID') : '-'}</td>
                         <td class="text-end pe-3">
                             <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-warning" onclick="openUpdateModal(${row._row}, ${JSON.stringify(row).replace(/"/g, '&quot;')})" title="Edit">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="openDeleteModal(${row._row})" title="Hapus">
-                                    <i class="bi bi-trash-fill"></i>
-                                </button>
+                                <button class="btn btn-sm btn-outline-warning" onclick="openUpdateModal(${row._row}, ${JSON.stringify(row).replace(/"/g, '&quot;')})"><i class="bi bi-pencil-fill"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="openDeleteModal(${row._row})"><i class="bi bi-trash-fill"></i></button>
                             </div>
                         </td>
                     `;
@@ -1148,7 +1134,6 @@
                 table.appendChild(tbody);
                 tableWrapper.appendChild(table);
                 collapseDiv.appendChild(tableWrapper);
-                
                 card.appendChild(cardHeader);
                 card.appendChild(collapseDiv);
                 container.appendChild(card);
@@ -1169,7 +1154,6 @@
         function openCreateModal() {
             currentAction = 'create';
             document.getElementById('formModalLabel').innerText = `Tambah Data Baru ke ${currentSheet}`;
-            
             if (currentSheet === 'IURAN BULANAN' || currentSheet === 'JADWAL RONDA') {
                 generateSimplifiedFormFields();
             } else if (currentSheet === 'UANG KAS') {
@@ -1177,7 +1161,6 @@
             } else {
                 generateFormFields();
             }
-            
             new bootstrap.Modal(document.getElementById('formModal')).show();
         }
 
@@ -1185,7 +1168,6 @@
             currentAction = 'update';
             currentRowNumber = rowNumber;
             document.getElementById('formModalLabel').innerText = `Edit Data di ${currentSheet}`;
-            
             if (currentSheet === 'UANG KAS') {
                 generateUangKasFormFields(rowData); 
             } else if (currentSheet === 'IURAN BULANAN' || currentSheet === 'JADWAL RONDA') {
@@ -1193,7 +1175,6 @@
             } else {
                 generateFormFields(rowData);
             }
-            
             new bootstrap.Modal(document.getElementById('formModal')).show();
         }
         
@@ -1202,20 +1183,31 @@
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
 
-        // --- FORM & CRUD ACTIONS ---
+        // --- FORM GENERATORS ---
         function generateFormFields(data = {}) {
             const formBody = document.getElementById('formModalBody');
             formBody.innerHTML = '';
-
             if (currentHeaders.length === 0) {
                 formBody.innerHTML = '<p class="text-muted">Tidak ada kolom untuk diisi.</p>';
                 return;
             }
-
             currentHeaders.forEach(header => {
+                if (String(header).trim().toUpperCase() === 'ID') {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.id = `input-${header}`;
+                    input.name = header;
+                    input.value = (data[header] !== undefined && data[header] !== null) ? data[header] : '';
+                    formBody.appendChild(input);
+                    return;
+                }
+                let isDateColumn = header.toLowerCase().includes('tanggal');
+                let inputType = isDateColumn ? 'date' : 'text';
+                let inputValue = (data[header] !== undefined && data[header] !== null) ? data[header] : '';
+                if (isDateColumn) inputValue = formatDateForInput(inputValue);
+
                 const formGroup = document.createElement('div');
                 formGroup.className = 'mb-3';
-                
                 const label = document.createElement('label');
                 label.htmlFor = `input-${header}`;
                 label.className = 'form-label';
@@ -1233,11 +1225,11 @@
                     formGroup.appendChild(label);
                 } else {
                     const input = document.createElement('input');
-                    input.type = 'text';
+                    input.type = inputType;
                     input.className = 'form-control';
                     input.id = `input-${header}`;
                     input.name = header;
-                    input.value = (data[header] !== undefined && data[header] !== null) ? data[header] : '';
+                    input.value = inputValue;
                     formGroup.appendChild(label);
                     formGroup.appendChild(input);
                 }
@@ -1248,21 +1240,17 @@
         function generateSimplifiedFormFields(data = null) {
             const formBody = document.getElementById('formModalBody');
             formBody.innerHTML = '';
-
             if (currentHeaders.length === 0) {
                 formBody.innerHTML = '<p class="text-muted">Tidak ada kolom untuk diisi.</p>';
                 return;
             }
-
             const header = currentHeaders[0];
             const formGroup = document.createElement('div');
             formGroup.className = 'mb-3';
-            
             const label = document.createElement('label');
             label.htmlFor = `input-${header}`;
             label.className = 'form-label';
             label.textContent = header;
-            
             const input = document.createElement('input');
             input.type = 'text';
             input.className = 'form-control';
@@ -1270,7 +1258,6 @@
             input.name = header;
             input.value = (data) ? data[header] : '';
             input.required = true;
-            
             formGroup.appendChild(label);
             formGroup.appendChild(input);
             formBody.appendChild(formGroup);
@@ -1284,123 +1271,59 @@
         function generateUangKasFormFields(data = null) {
             const formBody = document.getElementById('formModalBody');
             formBody.innerHTML = '';
-
             if (currentHeaders.length === 0) {
                 formBody.innerHTML = '<p class="text-muted">Tidak ada kolom untuk diisi.</p>';
                 return;
             }
-
-            let initialDate = new Date();
-            let initialKet = '';
-            let initialJenis = 'pemasukkan'; 
-            let initialJumlah = '';
-
+            let initialDate = new Date(), initialKet = '', initialJenis = 'pemasukkan', initialJumlah = '';
             if (data) {
                 const keyTanggal = currentHeaders.find(h => h.toLowerCase() === 'tanggal');
                 const keyKet = currentHeaders.find(h => h.toLowerCase().includes('keterangan'));
                 const keyMasuk = currentHeaders.find(h => h.toLowerCase().includes('pemasukkan'));
                 const keyKeluar = currentHeaders.find(h => h.toLowerCase().includes('pengeluaran'));
-
                 if (data[keyTanggal]) initialDate = new Date(data[keyTanggal]);
                 if (data[keyKet]) initialKet = data[keyKet];
-                
                 const valMasuk = (data[keyMasuk] !== undefined && data[keyMasuk] !== null) ? parseFloat(data[keyMasuk]) : 0;
                 const valKeluar = (data[keyKeluar] !== undefined && data[keyKeluar] !== null) ? parseFloat(data[keyKeluar]) : 0;
-
-                if (valMasuk > 0) {
-                    initialJenis = 'pemasukkan';
-                    initialJumlah = valMasuk;
-                } else if (valKeluar > 0) {
-                    initialJenis = 'pengeluaran';
-                    initialJumlah = valKeluar;
-                }
+                if (valMasuk > 0) { initialJenis = 'pemasukkan'; initialJumlah = valMasuk; } 
+                else if (valKeluar > 0) { initialJenis = 'pengeluaran'; initialJumlah = valKeluar; }
             }
 
             const formattedDate = `${initialDate.getFullYear()}-${String(initialDate.getMonth() + 1).padStart(2, '0')}-${String(initialDate.getDate()).padStart(2, '0')}`;
 
             const dateGroup = document.createElement('div');
             dateGroup.className = 'mb-3';
-            const dateLabel = document.createElement('label');
-            dateLabel.htmlFor = 'input-tanggal';
-            dateLabel.className = 'form-label';
-            dateLabel.textContent = 'Tanggal Transaksi';
-            const dateInput = document.createElement('input');
-            dateInput.type = 'date';
-            dateInput.className = 'form-control';
-            dateInput.id = 'input-tanggal';
-            dateInput.name = 'tanggal';
-            dateInput.value = formattedDate;
-            dateInput.required = true;
-            dateGroup.appendChild(dateLabel);
-            dateGroup.appendChild(dateInput);
+            dateGroup.innerHTML = `<label for='input-tanggal' class='form-label'>Tanggal Transaksi</label><input type='date' class='form-control' id='input-tanggal' name='tanggal' value='${formattedDate}' required>`;
             formBody.appendChild(dateGroup);
 
             const descHeader = currentHeaders.find(h => h.toLowerCase() === 'keterangan' || h.toLowerCase() === 'deskripsi') || 'Keterangan';
             const descGroup = document.createElement('div');
             descGroup.className = 'mb-3';
-            const descLabel = document.createElement('label');
-            descLabel.htmlFor = 'input-keterangan';
-            descLabel.className = 'form-label';
-            descLabel.textContent = descHeader;
-            const descInput = document.createElement('input');
-            descInput.type = 'text';
-            descInput.className = 'form-control';
-            descInput.id = 'input-keterangan';
-            descInput.name = 'keterangan';
-            descInput.value = initialKet;
-            descInput.placeholder = "Contoh: Iuran Kebersihan";
-            descInput.required = true;
-            descGroup.appendChild(descLabel);
-            descGroup.appendChild(descInput);
+            descGroup.innerHTML = `<label for='input-keterangan' class='form-label'>${descHeader}</label><input type='text' class='form-control' id='input-keterangan' name='keterangan' value='${initialKet}' placeholder="Contoh: Iuran Kebersihan" required>`;
             formBody.appendChild(descGroup);
 
             const typeGroup = document.createElement('div');
             typeGroup.className = 'mb-3';
-            const typeLabel = document.createElement('label');
-            typeLabel.htmlFor = 'input-jenis';
-            typeLabel.className = 'form-label';
-            typeLabel.textContent = 'Jenis Transaksi';
             const typeSelect = document.createElement('select');
             typeSelect.className = 'form-select';
             typeSelect.id = 'input-jenis';
             typeSelect.name = 'jenis';
-            
-            const pemasukanOption = document.createElement('option');
-            pemasukanOption.value = 'pemasukkan';
-            pemasukanOption.textContent = 'Pemasukkan (Uang Masuk)';
-            if (initialJenis === 'pemasukkan') pemasukanOption.selected = true;
-            
-            const pengeluaranOption = document.createElement('option');
-            pengeluaranOption.value = 'pengeluaran';
-            pengeluaranOption.textContent = 'Pengeluaran (Uang Keluar)';
-            if (initialJenis === 'pengeluaran') pengeluaranOption.selected = true;
-
-            typeSelect.appendChild(pemasukanOption);
-            typeSelect.appendChild(pengeluaranOption);
+            typeSelect.innerHTML = `<option value='pemasukkan' ${initialJenis === 'pemasukkan' ? 'selected' : ''}>Pemasukkan (Uang Masuk)</option><option value='pengeluaran' ${initialJenis === 'pengeluaran' ? 'selected' : ''}>Pengeluaran (Uang Keluar)</option>`;
+            const typeLabel = document.createElement('label');
+            typeLabel.htmlFor = 'input-jenis';
+            typeLabel.className = 'form-label';
+            typeLabel.textContent = 'Jenis Transaksi';
             typeGroup.appendChild(typeLabel);
             typeGroup.appendChild(typeSelect);
             formBody.appendChild(typeGroup);
 
             const amountGroup = document.createElement('div');
             amountGroup.className = 'mb-3';
-            const amountLabel = document.createElement('label');
-            amountLabel.htmlFor = 'input-jumlah';
-            amountLabel.className = 'form-label';
-            amountLabel.textContent = 'Nominal (Rp)';
-            const amountInput = document.createElement('input');
-            amountInput.type = 'number';
-            amountInput.className = 'form-control form-control-lg';
-            amountInput.id = 'input-jumlah';
-            amountInput.name = 'jumlah';
-            amountInput.value = initialJumlah;
-            amountInput.placeholder = "0";
-            amountInput.required = true;
-            amountInput.min = '0';
-            amountGroup.appendChild(amountLabel);
-            amountGroup.appendChild(amountInput);
+            amountGroup.innerHTML = `<label for='input-jumlah' class='form-label'>Nominal (Rp)</label><input type='number' class='form-control form-control-lg' id='input-jumlah' name='jumlah' value='${initialJumlah}' placeholder="0" required min='0'>`;
             formBody.appendChild(amountGroup);
         }
 
+        // --- SUBMIT & ACTIONS ---
         async function handleFormSubmit(event) {
             event.preventDefault();
             const form = event.target;
@@ -1412,81 +1335,49 @@
                     const firstColumnValue = formData.get(currentHeaders[0]) || '';
                     values = [firstColumnValue];
                     for (let i =1; i < currentHeaders.length; i++) {
-                        if (currentSheet === 'JADWAL RONDA' && String(currentHeaders[i]).toLowerCase() === 'terakhir ronda') {
-                            values.push('');
-                        } else {
-                            values.push(false);
-                        }
+                        if (currentSheet === 'JADWAL RONDA' && String(currentHeaders[i]).toLowerCase() === 'terakhir ronda') values.push('');
+                        else values.push(false);
                     }
                 } 
                 else if (currentSheet === 'UANG KAS') {
-                    const jenis = formData.get('jenis') || '';
-                    const jumlah = formData.get('jumlah') || '0';
-                    const tanggalValue = formData.get('tanggal') || '';
-                    const keteranganValue = formData.get('keterangan') || '';
-                    
+                    const jenis = formData.get('jenis') || '', jumlah = formData.get('jumlah') || '0';
+                    const tanggalValue = formData.get('tanggal') || '', keteranganValue = formData.get('keterangan') || '';
                     const formatBulanTahun = (dateString) => {
                         if (!dateString) return '';
                         const date = new Date(dateString);
                         return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' });
                     };
-
                     const pemasukkanValue = (jenis === 'pemasukkan') ? jumlah : '0';
                     const pengeluaranValue = (jenis === 'pengeluaran') ? jumlah : '0';
-
-                    values = [
-                        formatBulanTahun(tanggalValue),
-                        tanggalValue,
-                        keteranganValue,
-                        pemasukkanValue,
-                        pengeluaranValue
-                    ];
+                    values = [formatBulanTahun(tanggalValue), tanggalValue, keteranganValue, pemasukkanValue, pengeluaranValue];
                 } 
                 else {
                     values = currentHeaders.map(header => {
                         const val = formData.get(header);
-                        if (typeof form.elements[`input-${header}`]?.type === 'checkbox') {
-                            return val === 'on';
-                        }
+                        if (typeof form.elements[`input-${header}`]?.type === 'checkbox') return val === 'on';
                         return val || '';
                     });
                 }
             } else {
                 values = currentHeaders.map(header => {
                     const val = formData.get(header);
-                    if (typeof form.elements[`input-${header}`]?.type === 'checkbox') {
-                        return val === 'on';
-                    }
+                    if (typeof form.elements[`input-${header}`]?.type === 'checkbox') return val === 'on';
                     return val || '';
                 });
             }
             
             showLoader(true);
-            let payload = {
-                sheet: currentSheet,
-                action: currentAction,
-                values: values
-            };
-            if (currentAction === 'update') {
-                payload.row = currentRowNumber;
-            }
+            let payload = { sheet: currentSheet, action: currentAction, values: values };
+            if (currentAction === 'update') payload.row = currentRowNumber;
 
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
                 const result = await response.json();
-
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-
+                if (result.error) throw new Error(result.error);
                 showAlert(`Data berhasil ${currentAction === 'create' ? 'ditambahkan' : 'diperbarui'}!`, 'success');
                 bootstrap.Modal.getInstance(document.getElementById('formModal')).hide();
                 form.reset();
                 loadData(currentSheet);
-
             } catch (error) {
                 showAlert('Terjadi kesalahan: ' + error.message, 'danger');
             } finally {
@@ -1496,27 +1387,14 @@
 
         async function confirmDelete() {
             showLoader(true);
-            const payload = {
-                sheet: currentSheet,
-                action: 'delete',
-                row: currentRowNumber
-            };
-
+            const payload = { sheet: currentSheet, action: 'delete', row: currentRowNumber };
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
                 const result = await response.json();
-
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-                
+                if (result.error) throw new Error(result.error);
                 showAlert('Data berhasil dihapus!', 'success');
                 bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
                 loadData(currentSheet);
-
             } catch (error) {
                 showAlert('Terjadi kesalahan: ' + error.message, 'danger');
             } finally {
@@ -1527,8 +1405,6 @@
         async function toggleBoolean(rowNumber, columnName, iconElement) {
             const isCurrentlyTrue = iconElement.classList.contains('bi-check-circle-fill');
             const newValue = !isCurrentlyTrue;
-
-            // Optimistic UI Update
             const originalClasses = iconElement.className;
             const originalTitle = iconElement.title;
 
@@ -1539,52 +1415,25 @@
                 iconElement.className = 'clickable-icon bi bi-circle text-muted fs-5';
                 iconElement.title = 'Belum Selesai. Klik untuk ubah.';
             }
-            
             iconElement.classList.add('opacity-50');
 
-            // Update local data temporarily
             const rowIndex = tableData.findIndex(row => row._row === rowNumber);
-            if (rowIndex !== -1) {
-                tableData[rowIndex][columnName] = newValue;
-            }
+            if (rowIndex !== -1) tableData[rowIndex][columnName] = newValue;
 
-            const payload = {
-                sheet: currentSheet,
-                action: 'updateCell',
-                row: rowNumber,
-                column: columnName,
-                value: newValue
-            };
-
+            const payload = { sheet: currentSheet, action: 'updateCell', row: rowNumber, column: columnName, value: newValue };
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
                 const result = await response.json();
-
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-
+                if (result.error) throw new Error(result.error);
                 showAlert(result.message || 'Status berhasil diperbarui!', 'success');
-                
-                // Khusus Jadwal Ronda: Reload jika otomatisasi berjalan
                 if (currentSheet === 'JADWAL RONDA' && newValue === true) {
-                    setTimeout(() => {
-                        loadData(currentSheet);
-                    }, 500);
+                    setTimeout(() => loadData(currentSheet), 500);
                 }
-
             } catch (error) {
                 showAlert('Gagal memperbarui status: ' + error.message, 'danger');
-                // Revert UI on error
                 iconElement.className = originalClasses;
                 iconElement.title = originalTitle;
-                
-                if (rowIndex !== -1) {
-                    tableData[rowIndex][columnName] = isCurrentlyTrue;
-                }
+                if (rowIndex !== -1) tableData[rowIndex][columnName] = isCurrentlyTrue;
             } finally {
                 iconElement.classList.remove('opacity-50');
             }
@@ -1600,17 +1449,10 @@
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show shadow-sm`;
             alertDiv.style.marginBottom = "10px";
-            alertDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
+            alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
             alertContainer.appendChild(alertDiv);
-
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
+            setTimeout(() => alertDiv.remove(), 5000);
         }
-
     </script>
 </body>
 </html>
