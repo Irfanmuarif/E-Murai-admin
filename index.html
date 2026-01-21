@@ -819,16 +819,22 @@
 
         function formatDateDisplay(value) {
             if (!value) return '';
-            if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-                return value;
-            }
+            
+            // Langsung ubah ke Object Date
             let dateObj = (typeof value === 'string') ? new Date(value) : value;
+            
             if (value instanceof Date) dateObj = value;
             else return value; 
+            
+            // Cek apakah tanggal valid
             if (isNaN(dateObj.getTime())) return value; 
-            return dateObj.toLocaleDateString('en-CA'); 
+            
+            // --- BAGIAN DIUBAH (FORMAT DD-MM-YYYY) ---
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const year = dateObj.getFullYear();
+            return `${day}-${month}-${year}`;
         }
-
         function formatDateForInput(value) {
             if (!value) return '';
             let d;
