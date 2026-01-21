@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel RT Modern</title>
+    <title>Admin Panel E-murai</title>
     
     <!-- Font Inter (Google Fonts) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,7 +32,7 @@
             --radius-lg: 16px;
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-float: 0 5px 15px rgba(0, 0, 0, 0.15);
+            --shadow-float: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         body {
@@ -40,14 +40,14 @@
             font-family: 'Inter', sans-serif;
             color: var(--text-main);
             -webkit-font-smoothing: antialiased;
-            padding-bottom: 90px; /* Space for bottom nav */
+            padding-bottom: 100px; /* Space for bottom nav */
         }
 
         /* --- NAVBAR --- */
         .navbar {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255,255,255,0.95);
             backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border-color);
+            border-bottom:1px solid var(--border-color);
             padding-top: 0.8rem;
             padding-bottom: 0.8rem;
             position: sticky;
@@ -57,7 +57,7 @@
         .navbar-brand {
             font-weight: 700;
             color: var(--text-main) !important;
-            font-size: 1.2rem;
+            font-size:1.2rem;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -74,22 +74,22 @@
             margin-top: 20px;
         }
 
-        /* --- BOTTOM FACEBOOK-STYLE NAV --- */
+        /* --- BOTTOM NAV (TEXT & ICON) --- */
         .bottom-nav-wrapper {
             position: fixed;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px);
-            padding: 6px;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            padding: 8px 10px;
             border-radius: 50px;
             box-shadow: var(--shadow-float);
             display: flex;
-            width: 90%;
-            max-width: 420px;
-            border: 1px solid rgba(0,0,0,0.05);
+            width: 95%;
+            max-width: 450px;
+            border:1px solid rgba(0,0,0,0.05);
         }
         
         .nav-tabs.bottom-tabs {
@@ -100,7 +100,7 @@
             justify-content: space-between;
             padding: 0;
             margin: 0;
-            gap: 4px;
+            gap: 2px;
         }
 
         .nav-tabs.bottom-tabs .nav-item {
@@ -113,20 +113,34 @@
             color: var(--text-muted);
             font-weight: 600;
             border: none;
-            border-radius: 40px;
-            padding: 8px 4px; /* Compact padding */
+            border-radius: 20px;
+            padding: 0;
+            height: 55px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             transition: all 0.3s ease;
-            font-size: 0.8rem;
-            white-space: nowrap;
+            width: 100%;
             text-align: center;
         }
+        .nav-tabs.bottom-tabs .nav-link i {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+        }
+        .nav-tabs.bottom-tabs .nav-link span.tab-text {
+            font-size: 0.6rem;
+            line-height: 1;
+            text-transform: capitalize;
+        }
+        
         .nav-tabs.bottom-tabs .nav-link.active {
-            background-color: var(--fb-blue);
             color: white;
-            box-shadow: 0 2px 5px rgba(24, 119, 242, 0.4);
+            background: var(--fb-blue);
+            box-shadow: none;
         }
         .nav-tabs.bottom-tabs .nav-link:hover:not(.active) {
-            background-color: #f0f2f5;
+            background-color: rgba(0,0,0,0.05);
             color: var(--text-main);
         }
 
@@ -156,7 +170,7 @@
 
         /* --- LOADER --- */
         .loader {
-            background-color: rgba(255, 255, 255, 0.6);
+            background-color: rgba(255,255,255,0.6);
             backdrop-filter: blur(4px);
         }
 
@@ -170,7 +184,7 @@
         /* --- UANG KAS CARDS --- */
         .uangkas-control-bar {
             background: var(--surface);
-            padding: 16px;
+            padding:16px;
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-sm);
             margin-bottom: 20px;
@@ -205,7 +219,7 @@
         }
         .uangkas-period-header {
             background-color: #f9fafb;
-            padding: 16px 20px;
+            padding: 12px 16px;
             font-weight: 600;
             color: var(--text-main);
             border-bottom:1px solid var(--border-color);
@@ -225,22 +239,22 @@
             font-size: 1rem;
         }
         .uangkas-period-icon {
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             background: #e0e7ff;
             color: #4f46e5;
-            border-radius: 8px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
         .uangkas-period-saldo {
             font-weight: 700;
             color: var(--success-color);
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             background: #ecfdf5;
-            padding: 4px 12px;
+            padding: 2px 8px;
             border-radius: 20px;
         }
         .chevron-icon {
@@ -255,7 +269,7 @@
         .table-responsive {
             overflow-x: auto; 
             -webkit-overflow-scrolling: touch;
-            position: relative; /* Needed for sticky context */
+            position: relative;
         }
         .table {
             margin-bottom: 0;
@@ -269,7 +283,7 @@
             text-transform: uppercase;
             font-size: 0.75rem;
             letter-spacing: 0.5px;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom:1px solid var(--border-color);
             white-space: nowrap;
         }
         .table tbody tr {
@@ -279,7 +293,7 @@
             background-color: #f9fafb;
         }
         .table td {
-            border-bottom: 1px solid #f3f4f6;
+            border-bottom:1px solid #f3f4f6;
             vertical-align: middle;
         }
         .table tbody tr:last-child td {
@@ -292,21 +306,20 @@
             position: sticky;
             left: 0;
             z-index: 10;
-            background-color: var(--surface); /* Must match body bg */
-            border-right: 1px solid #f3f4f6;
+            background-color: var(--surface); 
+            border-right:1px solid #f3f4f6;
         }
         /* Higher Z-Index for Header Sticky */
         .table thead th:first-child {
             z-index: 20;
-            background-color: #f9fafb; /* Match thead bg */
-            border-right: 1px solid #e5e7eb;
+            background-color: #f9fafb; 
+            border-right:1px solid #e5e7eb;
         }
         
-        /* Action Buttons in Table */
         .action-cell .btn {
             border-radius: 6px;
-            padding: 4px 8px;
-            font-size: 0.8rem;
+            padding: 2px 6px; 
+            font-size: 0.75rem;
         }
 
         /* --- MODAL --- */
@@ -335,7 +348,7 @@
         }
         .form-control, .form-select {
             border-radius: 8px;
-            border: 1px solid #d1d5db;
+            border:1px solid #d1d5db;
             padding: 10px 14px;
             font-size: 0.95rem;
         }
@@ -350,6 +363,49 @@
             color: var(--text-main);
         }
 
+        /* --- PENGUMUMAN CARD --- */
+        .pengumuman-item {
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            margin-bottom: 15px;
+            padding: 15px;
+            box-shadow: var(--shadow-sm);
+        }
+        .pengumuman-title {
+            font-weight: 700;
+            color: #4f46e5;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        .pengumuman-body {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        /* Line Clamp for partial view */
+        .pengumuman-body.truncated {
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* Tampilkan 2 baris */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-muted); /* Sedikit pudar jika dipotong */
+        }
+        .pengumuman-btn-toggle {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--fb-blue);
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+        .pengumuman-btn-toggle:hover {
+            text-decoration: underline;
+        }
+
         /* --- ICONS & CLICKABLE --- */
         .clickable-icon {
             cursor: pointer;
@@ -359,24 +415,45 @@
             transform: scale(0.9);
         }
 
+        /* --- JADWAL RONDA COMPACT HEADER (2 BARIS) --- */
+        .compact-table thead th {
+            height: 60px; 
+            max-width: 70px; 
+            white-space: normal; 
+            vertical-align: middle;
+            padding: 5px !important;
+            line-height: 1.2;
+        }
+        .compact-table thead th:first-child {
+            max-width: 120px; 
+            width: auto;
+        }
+
         /* --- MOBILE OPTIMIZATIONS (< 768px) --- */
         @media (max-width: 768px) {
             body {
-                padding-bottom: 85px; /* Slightly less padding for bottom nav */
+                padding-bottom: 100px; 
             }
             .content-wrapper {
                 margin-top: 10px;
-                padding: 0 8px; /* Less padding */
+                padding: 0 8px; 
             }
 
             /* Bottom Nav Mobile Tweak */
             .bottom-nav-wrapper {
-                width: 95%;
-                padding: 5px;
+                width: 96%;
+                padding: 6px;
             }
             .nav-tabs.bottom-tabs .nav-link {
-                font-size: 0.75rem;
-                padding: 6px 2px;
+                height: 45px; 
+            }
+            .nav-tabs.bottom-tabs .nav-link i {
+                font-size: 1rem;
+                margin-bottom: 0;
+            }
+            .nav-tabs.bottom-tabs .nav-link span.tab-text {
+                font-size: 0.55rem; 
+                font-weight: 600;
             }
 
             /* Control Bar Stacking */
@@ -409,9 +486,8 @@
             .uangkas-period-saldo {
                 font-size: 0.75rem;
                 padding: 2px 8px;
-                display: none; /* Hide saldo per month on small mobile to save space */
+                display: none; 
             }
-            /* Show saldo only on hover or if expanded */
             .uangkas-period-header:hover .uangkas-period-saldo {
                 display: block;
                 position: absolute;
@@ -420,14 +496,25 @@
                 background: #10b981;
                 color: white;
                 z-index: 5;
+                border-radius: 4px;
+                padding: 4px;
             }
 
-            /* ULTRA COMPACT TABLES (Requested) */
+            /* --- UANG KAS LARGER FONT ON MOBILE --- */
+            .uangkas-period-card .table {
+                font-size: 0.85rem !important; /* Diperbesar dari 0.7rem */
+                line-height: 1.4 !important;
+            }
+
+            /* Table General Compact */
             .table {
-                font-size: 0.7rem !important; /* Very small */
+                font-size: 0.75rem !important;
+            }
+            .table tbody tr {
+                line-height: 1.3 !important;
             }
             .table th, .table td {
-                padding: 4px 6px !important; /* Tighter padding */
+                padding: 4px 8px !important; 
             }
             
             /* Hide text in small buttons, keep icons */
@@ -441,7 +528,7 @@
             
             /* Adjust sticky column width slightly */
             .table th:first-child, .table td:first-child {
-                min-width: 100px;
+                min-width: 90px;
             }
         }
     </style>
@@ -460,10 +547,10 @@
         <div class="container-fluid px-3 px-md-5">
             <span class="navbar-brand">
                 <i class="bi bi-grid-1x2-fill"></i>
-                <span>Admin Panel RT</span>
+                <span>Admin Panel E-murai</span>
             </span>
             <div class="d-flex align-items-center">
-                <!-- Optional: Current Sheet Indicator if needed, removing to save space for bottom nav -->
+                <!-- Space reserved if needed -->
             </div>
         </div>
     </nav>
@@ -500,11 +587,14 @@
                 <!-- Wadah untuk Uang Kas (Grouped Tables) -->
                 <div id="uangKasContainer"></div>
 
+                <!-- Wadah untuk Pengumuman (List Cards) -->
+                <div id="pengumumanContainer"></div>
+
             </div>
         </div>
     </main>
 
-    <!-- BOTTOM FACEBOOK STYLE NAV -->
+    <!-- BOTTOM NAV (TEXT & ICON) -->
     <div class="bottom-nav-wrapper">
         <ul class="nav nav-tabs bottom-tabs" id="sheetTabs" role="tablist">
             <!-- Tab akan di-generate oleh JavaScript -->
@@ -579,7 +669,7 @@
             document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
         });
 
-        // --- INISIALISASI TAB ---
+        // --- INISIALISASI TAB (TEXT + ICON) ---
         function initializeTabs() {
             const tabList = document.getElementById('sheetTabs');
             SHEETS.forEach((sheetName, index) => {
@@ -591,7 +681,21 @@
                 button.className = `nav-link ${index === 0 ? 'active' : ''}`;
                 button.setAttribute('type', 'button');
                 button.setAttribute('role', 'tab');
-                button.textContent = sheetName;
+                button.setAttribute('title', sheetName);
+                
+                // Icon Mapping
+                let iconClass = 'bi-grid';
+                if (sheetName === 'PENGUMUMAN') iconClass = 'bi-megaphone-fill';
+                else if (sheetName === 'UANG KAS') iconClass = 'bi-wallet2';
+                else if (sheetName === 'IURAN BULANAN') iconClass = 'bi-calendar-check';
+                else if (sheetName === 'JADWAL RONDA') iconClass = 'bi-shield-check';
+
+                // Struktur Icon + Text
+                button.innerHTML = `
+                    <div><i class="bi ${iconClass}"></i></div>
+                    <span class="tab-text">${sheetName}</span>
+                `;
+                
                 button.onclick = () => switchSheet(sheetName, button);
 
                 li.appendChild(button);
@@ -650,6 +754,7 @@
                 document.querySelector('#dataTable thead').innerHTML = '';
                 document.querySelector('#dataTable tbody').innerHTML = '';
                 document.getElementById('uangKasContainer').innerHTML = '';
+                document.getElementById('pengumumanContainer').innerHTML = '';
             } finally {
                 showLoader(false);
             }
@@ -658,26 +763,40 @@
         function renderTable(headers, rows) {
             const standardContainer = document.getElementById('standardTableContainer');
             const uangKasContainer = document.getElementById('uangKasContainer');
+            const pengumumanContainer = document.getElementById('pengumumanContainer');
             const actionHeader = document.getElementById('actionHeader');
+            const contentArea = document.getElementById('sheetTabContent');
             
             standardContainer.classList.add('d-none');
+            standardContainer.classList.remove('d-block');
             uangKasContainer.innerHTML = '';
+            pengumumanContainer.innerHTML = '';
             
-            if (currentSheet === 'UANG KAS') {
-                actionHeader.classList.add('d-none');
-            } else {
-                actionHeader.classList.remove('d-none');
+            // Reset Action Header
+            actionHeader.classList.add('d-none');
+            
+            // Jika PENGUMUMAN: Render List Cards (Sebagian)
+            if (currentSheet === 'PENGUMUMAN') {
+                renderPengumumanPartial(rows, pengumumanContainer);
+                return; 
             }
-
+            
+            // UANG KAS LOGIC
             if (currentSheet === 'UANG KAS') {
                 renderUangKasGrouped(headers, rows, uangKasContainer);
                 return;
             }
 
+            // STANDARD TABLE LOGIC (Others)
+            actionHeader.classList.remove('d-none');
             standardContainer.classList.remove('d-none');
-            const table = document.getElementById('dataTable');
-            const tableHead = table.querySelector('thead');
-            const tableBody = table.querySelector('tbody');
+            standardContainer.classList.add('d-block');
+            fillStandardTable(document.getElementById('dataTable'), headers, rows);
+        }
+
+        function fillStandardTable(tableElement, headers, rows) {
+            const tableHead = tableElement.querySelector('thead');
+            const tableBody = tableElement.querySelector('tbody');
             
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
@@ -687,39 +806,40 @@
                 return;
             }
 
+            let workingRows = [...rows];
             let dataKeys = headers; 
             let displayHeaders = headers; 
 
+            // LOGIKA KHUSUS JADWAL RONDA
             if (currentSheet === 'JADWAL RONDA') {
-                const firstHeader = headers[0];
-                let selectedColumns = [firstHeader];
-                const lastRondaIndex = headers.findIndex(h => String(h).toLowerCase() === "terakhir ronda");
-                const searchLimit = (lastRondaIndex > 0) ? lastRondaIndex : headers.length - 1;
+                // 1. Rename "Terakhir Ronda" -> "Hari"
+                const renamedHeaders = headers.map(h => String(h).toLowerCase() === "terakhir ronda" ? "Hari" : h);
                 
-                let trueColumns = [];
-                for (let i = searchLimit - 1; i >= 1 && trueColumns.length < 8; i--) {
-                    const columnName = headers[i];
-                    const hasTrueValue = rows.some(row => row[columnName] === true);
-                    if (hasTrueValue) {
-                        trueColumns.unshift(columnName);
+                // 2. Shorten Date Headers ("03-Jan-2026" -> "03-Jan")
+                displayHeaders = renamedHeaders.map(h => {
+                    if (typeof h !== 'string') return h;
+                    // Regex cari pola tanggal
+                    if (/^\d{2}-\w{3}-\d{4}$/.test(h)) {
+                        return h.substring(0, 6); 
                     }
+                    return h;
+                });
+
+                // Sort by 'Terakhir Ronda' (renamed to "Hari") Descending
+                const lastRondaIndex = renamedHeaders.findIndex(h => String(h).toLowerCase() === "hari"); // Cari index "Hari"
+                if (lastRondaIndex !== -1) {
+                    // Sort berdasarkan header original (yang ada tahun) agar urutan benar
+                    // Tapi untuk ditampilkan kita pakai displayHeaders
+                    
+                    // Ambil header asli untuk sortir
+                    const originalHeaderKey = headers[lastRondaIndex]; 
+                    
+                    workingRows.sort((a, b) => {
+                        const valA = parseInt(a[originalHeaderKey]) || 0;
+                        const valB = parseInt(b[originalHeaderKey]) || 0;
+                        return valB - valA; // Terbesar ke Terkecil
+                    });
                 }
-                selectedColumns.push(...trueColumns);
-                let lastTrueColumnIndex = 0;
-                if (trueColumns.length > 0) {
-                    lastTrueColumnIndex = headers.indexOf(trueColumns[trueColumns.length - 1]);
-                }
-                for (let i = 1; i <= 2; i++) {
-                    const nextColumnIndex = lastTrueColumnIndex + i;
-                    if (nextColumnIndex > 0 && nextColumnIndex < headers.length && nextColumnIndex !== lastRondaIndex) {
-                        selectedColumns.push(headers[nextColumnIndex]);
-                    }
-                }
-                if (lastRondaIndex !== -1 && !selectedColumns.includes(headers[lastRondaIndex])) {
-                    selectedColumns.push(headers[lastRondaIndex]);
-                }
-                dataKeys = selectedColumns;
-                displayHeaders = dataKeys.map(h => String(h).replace(/-\d{4}$/, ''));
             }
 
             const headerRow = document.createElement('tr');
@@ -734,11 +854,14 @@
             headerRow.appendChild(thAction);
             tableHead.appendChild(headerRow);
 
-            rows.forEach(row => {
+            workingRows.forEach(row => {
                 const tr = document.createElement('tr');
-                dataKeys.forEach(dataKey => {
+                // Mapping displayHeaders ke keys asli
+                dataKeys.forEach((originalKey, idx) => {
+                    const displayHeader = displayHeaders[idx];
                     const td = document.createElement('td');
-                    const cellValue = row[dataKey];
+                    const cellValue = row[originalKey];
+                    
                     if (BOOLEAN_SHEETS.includes(currentSheet) && typeof cellValue === 'boolean') {
                         td.className = 'text-center';
                         const icon = document.createElement('i');
@@ -750,7 +873,7 @@
                             icon.className += 'bi-circle text-muted fs-5';
                             icon.title = 'Belum Selesai. Klik untuk ubah.';
                         }
-                        icon.onclick = () => toggleBoolean(row._row, dataKey, icon);
+                        icon.onclick = () => toggleBoolean(row._row, originalKey, icon);
                         td.appendChild(icon);
                     } else {
                         td.textContent = cellValue || '-';
@@ -779,14 +902,69 @@
                 tr.appendChild(tdAction);
                 tableBody.appendChild(tr);
             });
-
-            // LOGIKA SCROLL KE KANAN UNTUK JADWAL RONDA (MOBILE)
+            
+            // Scroll Logic for Mobile Jadwal Ronda
             if (currentSheet === 'JADWAL RONDA' && window.innerWidth <= 768) {
                 setTimeout(() => {
-                    if (standardContainer.scrollWidth > standardContainer.clientWidth) {
-                        standardContainer.scrollLeft = standardContainer.scrollWidth;
+                    const container = tableElement.closest('.table-responsive');
+                    if (container && container.scrollWidth > container.clientWidth) {
+                        container.scrollLeft = container.scrollWidth;
                     }
                 }, 100);
+            }
+        }
+
+        // --- FUNGSI RENDER PENGUMUMAN (SEBAGIAN) ---
+        function renderPengumumanPartial(rows, container) {
+            if (rows.length === 0) {
+                container.innerHTML = '<div class="text-center py-5 text-muted">Tidak ada pengumuman.</div>';
+                return;
+            }
+
+            rows.forEach(row => {
+                const card = document.createElement('div');
+                card.className = 'pengumuman-item';
+                
+                // Asumsi struktur: kolom 0 = Judul, kolom 1 = Isi
+                const judul = row[Object.keys(row)[0]] || "Tanpa Judul";
+                const isi = row[Object.keys(row)[1]] || "";
+                const date = row[Object.keys(row)[2]] || formatDateDisplay(row[Object.keys(row)[2]]);
+                
+                card.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="pengumuman-title">${judul}</div>
+                        <small class="text-muted" style="font-size:0.8rem;">${date}</small>
+                    </div>
+                    <div class="pengumuman-body truncated" id="pengumuman-body-${row._row}">
+                        ${isi}
+                    </div>
+                    <div class="text-end">
+                        <button class="pengumuman-btn-toggle" onclick="togglePengumuman(${row._row}, this)">
+                            Baca Selengkapnya...
+                        </button>
+                    </div>
+                    <!-- Tombol Edit/Hapus (Optional, jika pengumuman mau diedit) -->
+                    <div class="mt-2 pt-2 border-top d-flex justify-content-end gap-2">
+                        <button class="btn btn-sm btn-outline-warning" onclick="openUpdateModal(${row._row}, ${JSON.stringify(row).replace(/"/g, '&quot;')})">
+                            <i class="bi bi-pencil-fill"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="openDeleteModal(${row._row})">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function togglePengumuman(rowId, btnElement) {
+            const bodyEl = document.getElementById(`pengumuman-body-${rowId}`);
+            if (bodyEl.classList.contains('truncated')) {
+                bodyEl.classList.remove('truncated');
+                btnElement.textContent = "Tutup";
+            } else {
+                bodyEl.classList.add('truncated');
+                btnElement.textContent = "Baca Selengkapnya...";
             }
         }
 
