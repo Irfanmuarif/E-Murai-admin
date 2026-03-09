@@ -362,6 +362,16 @@
             font-size: 0.75rem;
         }
 
+        /* --- STYLE FOTO RONDA (BARU) --- */
+        .ronda-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e5e7eb;
+            background-color: #f3f4f6;
+        }
+
         /* --- MODAL --- */
         .modal-content {
             border: none;
@@ -568,6 +578,12 @@
             /* Adjust sticky column width slightly */
             .table th:first-child, .table td:first-child {
                 min-width: 90px;
+            }
+            
+            /* Foto lebih kecil di mobile */
+            .ronda-avatar {
+                width: 35px;
+                height: 35px;
             }
         }
     </style>
@@ -917,13 +933,19 @@
             let displayHeaders = headers; 
 
             if (currentSheet === 'JADWAL RONDA') {
+                // Rename header 'terakhir ronda' menjadi 'Hari' untuk tampilan saja (jika perlu)
                 const renamedHeaders = headers.map(h => String(h).toLowerCase() === "terakhir ronda" ? "Hari" : h);
+                
+                // --- PERUBAHAN 1: SORTING A-Z BERDASARKAN NAMA (KOLOM PERTAMA) ---
+                // Kita mengurutkan berdasarkan kolom pertama (Nama) secara ascending (A-Z)
+                workingRows.sort((a, b) => {
+                    const nameA = String(a[headers[0]] || "").toLowerCase();
+                    const nameB = String(b[headers[0]] || "").toLowerCase();
+                    return nameA.localeCompare(nameB, 'id'); // 'id' untuk bahasa Indonesia
+                });
+
+                // Tampilkan header yang lebih pendek untuk tanggal
                 displayHeaders = renamedHeaders.map(h => (typeof h !== 'string') ? h : (/^\d{2}-\w{3}-\d{4}$/.test(h) ? h.substring(0, 6) : h));
-                const lastRondaIndex = renamedHeaders.findIndex(h => String(h).toLowerCase() === "hari"); 
-                if (lastRondaIndex !== -1) {
-                    const originalHeaderKey = headers[lastRondaIndex]; 
-                    workingRows.sort((a, b) => (parseInt(b[originalHeaderKey]) || 0) - (parseInt(a[originalHeaderKey]) || 0));
-                }
             }
 
             const headerRow = document.createElement('tr');
@@ -944,7 +966,27 @@
                     const td = document.createElement('td');
                     const cellValue = row[originalKey];
                     
-                    if (BOOLEAN_SHEETS.includes(currentSheet) && typeof cellValue === 'boolean') {
+                    // --- PERUBAHAN 2: CEK KOLOM FOTO UNTUK MENAMPILKAN GAMBAR ---
+                    // Jika sheet JADWAL RONDA dan nama kolom mengandung 'foto' (atau index ke-1)
+                    const isPhotoColumn = currentSheet === 'JADWAL RONDA' && 
+                                         (String(displayHeaders[idx]).toLowerCase().includes('foto') || idx === 1);
+                    
+                    if (isPhotoColumn && cellValue) {
+                        const img = document.createElement('img');
+                        img.src = cellValue;
+                        img.className = 'ronda-avatar';
+                        img.alt = 'Foto Warga';
+                        // Jika gambar error (tidak ditemukan), sembunyikan elemen gambarnya
+                        img.onerror = function() {
+                            this.style.display = 'none';
+                            // Opsional: Tampilkan teks alternatif jika gambar rusak
+                            // td.innerText = 'No Img'; 
+                        };
+                        td.appendChild(img);
+                        // Tambahkan sedikit padding agar rapi
+                        td.style.padding = "4px 8px";
+                    }
+                    else if (BOOLEAN_SHEETS.includes(currentSheet) && typeof cellValue === 'boolean') {
                         td.className = 'text-center';
                         const icon = document.createElement('i');
                         icon.className = 'clickable-icon bi ' + (cellValue ? 'bi-check-circle-fill text-success fs-5' : 'bi-circle text-muted fs-5');
@@ -975,6 +1017,7 @@
                 tableBody.appendChild(tr);
             });
             
+            // Auto scroll ke kanan untuk Jadwal Ronda di mobile
             if (currentSheet === 'JADWAL RONDA' && window.innerWidth <= 768) {
                 setTimeout(() => {
                     const container = tableElement.closest('.table-responsive');
