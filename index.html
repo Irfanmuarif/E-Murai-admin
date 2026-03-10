@@ -764,16 +764,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             let isLoggedin = false;
             try {
-                // Cek localStorage, jika error (karena sandbox) catch akan menanganinya
                 isLoggedin = localStorage.getItem('isAdminLogged') === 'true';
             } catch (e) {
-                console.warn("LocalStorage tidak tersedia (kemungkinan di dalam iframe/sandbox).");
+                console.warn("LocalStorage tidak tersedia.");
             }
             
             if (isLoggedin) {
                 showApp();
             } else {
-                // Pastikan fokus di input password
                 const passInput = document.getElementById('adminPassword');
                 if(passInput) passInput.focus();
             }
@@ -866,11 +864,7 @@
         }
 
         function switchSheet(sheetName, buttonElement) {
-            // Jika sedang edit mode dan pindah tab, batalkan edit mode
-            if (isEditMode) {
-                cancelEditMode();
-            }
-
+            if (isEditMode) cancelEditMode();
             document.querySelectorAll('#sheetTabs .nav-link').forEach(btn => btn.classList.remove('active'));
             buttonElement.classList.add('active');
             currentSheet = sheetName;
@@ -881,7 +875,6 @@
         function formatDateDisplay(value) {
             if (!value) return '';
             let dateObj;
-
             if (typeof value === 'string') {
                 dateObj = new Date(value);
             } else if (value instanceof Date) {
@@ -889,9 +882,7 @@
             } else {
                 return value;
             }
-
             if (isNaN(dateObj.getTime())) return value;
-
             const options = { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' };
             const parts = dateObj.toLocaleDateString('en-US', options).split(' '); 
             return `${parts[1]}-${parts[0]}-${parts[2]}`;
@@ -907,9 +898,7 @@
             } else {
                 return '';
             }
-
             if (isNaN(dateObj.getTime())) return '';
-            
             const y = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric' });
             const m = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', month: '2-digit' });
             const d = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', day: '2-digit' });
@@ -943,7 +932,6 @@
             const actionHeader = document.getElementById('actionHeader');
             const pageTitle = document.getElementById('pageTitle');
             
-            // Reset visibility
             standardContainer.classList.add('d-none');
             standardContainer.classList.remove('d-block');
             uangKasContainer.innerHTML = '';
@@ -951,13 +939,11 @@
             actionHeader.classList.remove('d-none');
             pageTitle.innerText = currentSheet;
 
-            // Handle Button Visibility based on Sheet & Edit Mode
             const btnCreate = document.getElementById('btnCreate');
             const btnEdit = document.getElementById('btnEdit');
             const btnSave = document.getElementById('btnSave');
             const btnCancel = document.getElementById('btnCancel');
 
-            // Reset all to hidden first
             btnCreate.classList.add('d-none');
             btnEdit.classList.add('d-none');
             btnSave.classList.add('d-none');
@@ -973,7 +959,6 @@
                 return;
             }
 
-            // Logic for IURAN BULANAN & JADWAL RONDA
             standardContainer.classList.remove('d-none');
             standardContainer.classList.add('d-block');
             fillStandardTable(document.getElementById('dataTable'), headers, rows);
@@ -987,7 +972,6 @@
                     btnEdit.classList.remove('d-none');
                 }
             } else {
-                // Standard non-boolean tables
                 btnCreate.classList.remove('d-none');
             }
         }
@@ -1000,21 +984,44 @@
             if (headers.length === 0) return renderEmptyState(tableBody);
 
             let workingRows = [...rows];
-            let dataKeys = headers; 
-            let displayHeaders = headers; 
+            let dataKeys = [...headers]; 
+            let displayHeaders = [...headers]; 
+
+            // --- LOGIC JADWAL RONDA: TAMPILKAN KOLOM PERTAMA + 9 TERAKHIR + KOLOM TERAKHIR ---
+            if (currentSheet === 'JADWAL RONDA' && headers.length > 11) {
+                const firstCol = headers[0]; // Nama
+                const lastCol = headers[headers.length - 1]; // Terakhir Ronda
+                
+                // Ambil kolom tengah (kecuali pertama & terakhir)
+                const middleCols = headers.slice(1, headers.length - 1);
+                
+                // Ambil 9 kolom terakhir dari bagian tengah
+                const recentCols = middleCols.slice(-9);
+
+                // Gabungkan ulang header
+                displayHeaders = [firstCol, ...recentCols, lastCol];
+                dataKeys = [...displayHeaders];
+
+                // --- FILTER DATA ROWS ---
+                // Buat array objek baru yang hanya berisi data untuk header yang ditampilkan
+                workingRows = workingRows.map(row => {
+                    let newRow = {};
+                    displayHeaders.forEach(key => {
+                        newRow[key] = row[key];
+                    });
+                    newRow._row = row._row; // Pertahankan nomor baris asli untuk update/delete
+                    return newRow;
+                });
+            }
+            // -------------------------------------------------------------------------------------------
 
             if (currentSheet === 'JADWAL RONDA') {
-                // Rename header logic
-                const renamedHeaders = headers.map(h => String(h).toLowerCase() === "terakhir ronda" ? "Hari" : h);
-                
-                // Sorting A-Z
+                const renamedHeaders = displayHeaders.map(h => String(h).toLowerCase() === "terakhir ronda" ? "Hari" : h);
                 workingRows.sort((a, b) => {
-                    const nameA = String(a[headers[0]] || "").toLowerCase();
-                    const nameB = String(b[headers[0]] || "").toLowerCase();
+                    const nameA = String(a[dataKeys[0]] || "").toLowerCase();
+                    const nameB = String(b[dataKeys[0]] || "").toLowerCase();
                     return nameA.localeCompare(nameB, 'id');
                 });
-
-                // Shorten date headers
                 displayHeaders = renamedHeaders.map(h => (typeof h !== 'string') ? h : (/^\d{2}-\w{3}-\d{4}$/.test(h) ? h.substring(0, 6) : h));
             }
 
@@ -1025,7 +1032,6 @@
                 headerRow.appendChild(th);
             });
             
-            // Action Column Header
             const thAction = document.createElement('th');
             thAction.textContent = 'Aksi';
             thAction.className = 'text-end pe-3';
@@ -1038,7 +1044,6 @@
                     const td = document.createElement('td');
                     const cellValue = row[originalKey];
                     
-                    // Photo Logic
                     const isPhotoColumn = currentSheet === 'JADWAL RONDA' && 
                                          (String(displayHeaders[idx]).toLowerCase().includes('foto') || idx === 1);
                     
@@ -1053,23 +1058,16 @@
                     }
                     else if (BOOLEAN_SHEETS.includes(currentSheet) && typeof cellValue === 'boolean') {
                         td.className = 'text-center';
-                        
-                        // --- LOGIC EDIT MODE DISINI ---
                         if (isEditMode) {
-                            // Tampilkan Checkbox jika sedang Edit Mode
                             const checkbox = document.createElement('input');
                             checkbox.type = 'checkbox';
                             checkbox.className = 'form-check-input edit-checkbox';
                             checkbox.checked = cellValue;
-                            // Simpan referensi data di atribut untuk memudahkan pengambilan data saat save
                             checkbox.dataset.row = row._row;
                             checkbox.dataset.col = originalKey;
                             td.appendChild(checkbox);
                         } else {
-                            // Tampilkan Icon saja (Read-Only) jika tidak sedang Edit Mode
-                            // Ini mencegah kepencet saat scroll
                             const icon = document.createElement('i');
-                            // Hapus class clickable-icon agar tidak klickable
                             icon.className = 'bi ' + (cellValue ? 'bi-check-circle-fill text-success fs-5' : 'bi-circle text-muted fs-5');
                             icon.title = cellValue ? 'Selesai' : 'Belum Selesai';
                             td.appendChild(icon);
@@ -1082,14 +1080,11 @@
                 
                 const tdAction = document.createElement('td');
                 tdAction.className = 'text-end pe-3';
-                
-                // Di Edit Mode, sembunyikan tombol aksi per baris (Edit/Delete) untuk fokus ke Checkbox
                 if (isEditMode) {
                     tdAction.innerHTML = `<span class="text-muted small">Edit Mode...</span>`;
                 } else {
                     let actionButtonsHTML = '';
                     if (BOOLEAN_SHEETS.includes(currentSheet)) {
-                        // Di view mode, hanya tombol hapus yang tampil (karena edit checkbox pakai batch mode)
                         actionButtonsHTML = `<button class="btn btn-danger btn-sm rounded-circle" style="width:32px; height:32px; padding:0; display:inline-flex; align-items:center; justify-content:center;" onclick="openDeleteModal(${row._row})"><i class="bi bi-trash"></i></button>`;
                     } else {
                         actionButtonsHTML = `
@@ -1105,7 +1100,6 @@
                 tableBody.appendChild(tr);
             });
             
-            // Auto scroll ke kanan untuk Jadwal Ronda di mobile
             if (currentSheet === 'JADWAL RONDA' && window.innerWidth <= 768) {
                 setTimeout(() => {
                     const container = tableElement.closest('.table-responsive');
@@ -1117,21 +1111,17 @@
         // --- EDIT MODE FUNCTIONS ---
         function enterEditMode() {
             isEditMode = true;
-            // Re-render table untuk menampilkan checkbox
             renderTable(currentHeaders, tableData);
             showAlert('Mode Ubah Data Aktif: Silakan ceklis kolom yang ingin diubah.', 'info');
         }
 
         function cancelEditMode() {
             isEditMode = false;
-            // Re-render table untuk kembali ke tampilan ikon statis
             renderTable(currentHeaders, tableData);
         }
 
         async function saveBatchChanges() {
             showLoader(true);
-            
-            // Kumpulkan semua perubahan dari checkbox yang ada di DOM
             const checkboxes = document.querySelectorAll('.edit-checkbox');
             const updates = [];
 
@@ -1139,15 +1129,9 @@
                 const rowNum = parseInt(cb.dataset.row);
                 const colName = cb.dataset.col;
                 const newValue = cb.checked;
-                
-                // Cari nilai asli di tableData
                 const originalRow = tableData.find(r => r._row === rowNum);
                 if (originalRow && originalRow[colName] !== newValue) {
-                    updates.push({
-                        row: rowNum,
-                        column: colName,
-                        value: newValue
-                    });
+                    updates.push({ row: rowNum, column: colName, value: newValue });
                 }
             });
 
@@ -1159,8 +1143,6 @@
             }
 
             try {
-                // Karena API kemungkinan hanya handle satu request per update, 
-                // kita kirim secara paralel menggunakan Promise.all
                 const promises = updates.map(u => {
                     return fetch(API_URL, { 
                         method: 'POST', 
@@ -1175,23 +1157,11 @@
                 });
 
                 const results = await Promise.all(promises);
-                
-                // Cek apakah ada error di salah satu request
                 const hasError = results.some(r => r.error);
-                if (hasError) {
-                    throw new Error('Beberapa data gagal diperbarui.');
-                }
+                if (hasError) throw new Error('Beberapa data gagal diperbarui.');
 
                 showAlert(`${updates.length} data berhasil diperbarui!`, 'success');
-                
-                // --- PERUBAHAN LOGIKA DISINI ---
-                // Kita tidak lagi mengupdate data lokal secara manual, melainkan
-                // memanggil loadData lagi untuk mengambil struktur terbaru dari Spreadsheet
-                // (termasuk kolom baru yang mungkin ditambahkan otomatis oleh logic Apps Script).
-                
                 await loadData(currentSheet);
-                
-                // Keluar dari mode edit secara otomatis setelah save
                 if (isEditMode) cancelEditMode(); 
 
             } catch (error) {
@@ -1200,7 +1170,6 @@
                 showLoader(false);
             }
         }
-
 
         function renderPengumumanPartial(rows, container) {
             if (rows.length === 0) {
@@ -1403,7 +1372,6 @@
             tbody.appendChild(tr);
         }
         
-        // --- MODAL HANDLERS ---
         function openCreateModal() {
             currentAction = 'create';
             document.getElementById('formModalLabel').innerText = `Tambah Data Baru ke ${currentSheet}`;
@@ -1436,7 +1404,6 @@
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
 
-        // --- FORM GENERATORS ---
         function generateFormFields(data = {}) {
             const formBody = document.getElementById('formModalBody');
             formBody.innerHTML = '';
@@ -1576,7 +1543,6 @@
             formBody.appendChild(amountGroup);
         }
 
-        // --- SUBMIT & ACTIONS ---
         async function handleFormSubmit(event) {
             event.preventDefault();
             const form = event.target;
@@ -1655,7 +1621,6 @@
             }
         }
 
-        // --- UTILITIES ---
         function showLoader(show) {
             document.getElementById('loader').style.display = show ? 'flex' : 'none';
         }
