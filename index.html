@@ -1488,6 +1488,7 @@
             formBody.appendChild(infoDiv);
         }
 
+        // --- MODIFIKASI: MENAMBAHKAN DATALIST PADA FORM UANG KAS ---
         function generateUangKasFormFields(data = null) {
             const formBody = document.getElementById('formModalBody');
             formBody.innerHTML = '';
@@ -1519,7 +1520,18 @@
             const descHeader = currentHeaders.find(h => h.toLowerCase() === 'keterangan' || h.toLowerCase() === 'deskripsi') || 'Keterangan';
             const descGroup = document.createElement('div');
             descGroup.className = 'mb-3';
-            descGroup.innerHTML = `<label for='input-keterangan' class='form-label'>${descHeader}</label><input type='text' class='form-control' id='input-keterangan' name='keterangan' value='${initialKet}' placeholder="Contoh: Iuran Kebersihan" required>`;
+            
+            // PERUBAHAN DISINI: Menambahkan atribut list dan elemen datalist
+            descGroup.innerHTML = `
+                <label for='input-keterangan' class='form-label'>${descHeader}</label>
+                <input type='text' class='form-control' id='input-keterangan' name='keterangan' list='opsi-keterangan' value='${initialKet}' placeholder="Contoh: Iuran Kebersihan" required autocomplete="off">
+                <datalist id='opsi-keterangan'>
+                    <option value="Iuran bulanan blok">
+                    <option value="Iuran kas gang">
+                    <option value="dansos blok">
+                    <option value="Listrik 4 rmh">
+                </datalist>
+            `;
             formBody.appendChild(descGroup);
 
             const typeGroup = document.createElement('div');
