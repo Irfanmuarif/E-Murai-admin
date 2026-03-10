@@ -372,6 +372,14 @@
             background-color: #f3f4f6;
         }
 
+        /* --- CHECKBOX EDIT MODE --- */
+        .edit-checkbox {
+            width: 1.3rem;
+            height: 1.3rem;
+            cursor: pointer;
+            accent-color: var(--success-color);
+        }
+
         /* --- MODAL --- */
         .modal-content {
             border: none;
@@ -646,12 +654,31 @@
                 <!-- Konten Tab -->
                 <div class="tab-content" id="sheetTabContent">
                     
-                    <!-- Header Tombol Tambah (Standard) -->
+                    <!-- Header Tombol Aksi -->
                     <div class="d-flex justify-content-between align-items-center mb-4 px-1" id="actionHeader">
-                        <h2 class="h4 fw-bold text-dark">Data Tabel</h2>
-                        <button class="btn btn-primary-custom btn-sm" onclick="openCreateModal()">
-                            <i class="bi bi-plus-lg me-1"></i> Tambah Data
-                        </button>
+                        <h2 class="h4 fw-bold text-dark" id="pageTitle">Data Tabel</h2>
+                        
+                        <div class="d-flex gap-2" id="headerButtons">
+                            <!-- Tombol Tambah Data -->
+                            <button class="btn btn-primary-custom btn-sm" id="btnCreate" onclick="openCreateModal()">
+                                <i class="bi bi-plus-lg me-1"></i> <span class="d-none d-sm-inline">Tambah Data</span>
+                            </button>
+
+                            <!-- Tombol Edit Batch (Hanya muncul di IURAN & JADWAL) -->
+                            <button class="btn btn-outline-primary btn-sm d-none" id="btnEdit" onclick="enterEditMode()">
+                                <i class="bi bi-pencil-square me-1"></i> <span class="d-none d-sm-inline">Ubah Data</span>
+                            </button>
+                            
+                            <!-- Tombol Simpan Batch (Hanya muncul saat Edit Mode) -->
+                            <button class="btn btn-success btn-sm d-none" id="btnSave" onclick="saveBatchChanges()">
+                                <i class="bi bi-check-lg me-1"></i> <span class="d-none d-sm-inline">Simpan</span>
+                            </button>
+                            
+                            <!-- Tombol Batal (Hanya muncul saat Edit Mode) -->
+                            <button class="btn btn-secondary btn-sm d-none" id="btnCancel" onclick="cancelEditMode()">
+                                <i class="bi bi-x-lg me-1"></i> <span class="d-none d-sm-inline">Batal</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Wadah untuk Tabel Biasa -->
@@ -735,11 +762,20 @@
         const ADMIN_PASSWORD = "admin123";
         
         document.addEventListener('DOMContentLoaded', () => {
-            const isLoggedin = localStorage.getItem('isAdminLogged');
-            if (isLoggedin === 'true') {
+            let isLoggedin = false;
+            try {
+                // Cek localStorage, jika error (karena sandbox) catch akan menanganinya
+                isLoggedin = localStorage.getItem('isAdminLogged') === 'true';
+            } catch (e) {
+                console.warn("LocalStorage tidak tersedia (kemungkinan di dalam iframe/sandbox).");
+            }
+            
+            if (isLoggedin) {
                 showApp();
             } else {
-                document.getElementById('adminPassword').focus();
+                // Pastikan fokus di input password
+                const passInput = document.getElementById('adminPassword');
+                if(passInput) passInput.focus();
             }
         });
 
@@ -748,7 +784,11 @@
             const errorMsg = document.getElementById('loginError');
 
             if (inputPass === ADMIN_PASSWORD) {
-                localStorage.setItem('isAdminLogged', 'true');
+                try {
+                    localStorage.setItem('isAdminLogged', 'true');
+                } catch (e) {
+                    console.warn("Tidak bisa menyimpan sesi login.");
+                }
                 showApp();
             } else {
                 errorMsg.style.display = 'block';
@@ -768,7 +808,11 @@
         }
 
         function logout() {
-            localStorage.removeItem('isAdminLogged');
+            try {
+                localStorage.removeItem('isAdminLogged');
+            } catch (e) {
+                console.warn("Tidak bisa menghapus sesi login.");
+            }
             location.reload();
         }
 
@@ -790,6 +834,9 @@
         let currentRowNumber = null;
         let currentSheet = SHEETS[0];
         let tableData = []; 
+
+        // --- EDIT MODE VARIABLES ---
+        let isEditMode = false;
 
         function initializeTabs() {
             const tabList = document.getElementById('sheetTabs');
@@ -819,6 +866,11 @@
         }
 
         function switchSheet(sheetName, buttonElement) {
+            // Jika sedang edit mode dan pindah tab, batalkan edit mode
+            if (isEditMode) {
+                cancelEditMode();
+            }
+
             document.querySelectorAll('#sheetTabs .nav-link').forEach(btn => btn.classList.remove('active'));
             buttonElement.classList.add('active');
             currentSheet = sheetName;
@@ -830,7 +882,6 @@
             if (!value) return '';
             let dateObj;
 
-            // Handle String ISO (UTC) atau Objek Date
             if (typeof value === 'string') {
                 dateObj = new Date(value);
             } else if (value instanceof Date) {
@@ -839,17 +890,10 @@
                 return value;
             }
 
-            // Validasi tanggal
             if (isNaN(dateObj.getTime())) return value;
 
-            // Gunakan Timezone Asia/Jakarta (WIB) agar sesuai dengan sheet
             const options = { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' };
-            
-            // toLocaleDateString('en-US') menghasilkan format bulan pendek (Jan, Feb, dll)
-            const parts = dateObj.toLocaleDateString('en-US', options).split(' '); // format: "Jan 29, 2024" atau "Jan 29, 2024"
-            
-            // parts[0] = Month, parts[1] = Day, parts[2] = Year
-            // Kita ubah urutan menjadi Day-Month-Year
+            const parts = dateObj.toLocaleDateString('en-US', options).split(' '); 
             return `${parts[1]}-${parts[0]}-${parts[2]}`;
         }
 
@@ -866,7 +910,6 @@
 
             if (isNaN(dateObj.getTime())) return '';
             
-            // Format YYYY-MM-DD untuk input HTML date, sesuai WIB
             const y = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric' });
             const m = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', month: '2-digit' });
             const d = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', day: '2-digit' });
@@ -898,13 +941,28 @@
             const uangKasContainer = document.getElementById('uangKasContainer');
             const pengumumanContainer = document.getElementById('pengumumanContainer');
             const actionHeader = document.getElementById('actionHeader');
+            const pageTitle = document.getElementById('pageTitle');
             
+            // Reset visibility
             standardContainer.classList.add('d-none');
             standardContainer.classList.remove('d-block');
             uangKasContainer.innerHTML = '';
             pengumumanContainer.innerHTML = '';
-            actionHeader.classList.add('d-none');
-            
+            actionHeader.classList.remove('d-none');
+            pageTitle.innerText = currentSheet;
+
+            // Handle Button Visibility based on Sheet & Edit Mode
+            const btnCreate = document.getElementById('btnCreate');
+            const btnEdit = document.getElementById('btnEdit');
+            const btnSave = document.getElementById('btnSave');
+            const btnCancel = document.getElementById('btnCancel');
+
+            // Reset all to hidden first
+            btnCreate.classList.add('d-none');
+            btnEdit.classList.add('d-none');
+            btnSave.classList.add('d-none');
+            btnCancel.classList.add('d-none');
+
             if (currentSheet === 'PENGUMUMAN') {
                 renderPengumumanPartial(rows, pengumumanContainer);
                 return; 
@@ -915,10 +973,23 @@
                 return;
             }
 
-            actionHeader.classList.remove('d-none');
+            // Logic for IURAN BULANAN & JADWAL RONDA
             standardContainer.classList.remove('d-none');
             standardContainer.classList.add('d-block');
             fillStandardTable(document.getElementById('dataTable'), headers, rows);
+
+            if (BOOLEAN_SHEETS.includes(currentSheet)) {
+                if (isEditMode) {
+                    btnSave.classList.remove('d-none');
+                    btnCancel.classList.remove('d-none');
+                } else {
+                    btnCreate.classList.remove('d-none');
+                    btnEdit.classList.remove('d-none');
+                }
+            } else {
+                // Standard non-boolean tables
+                btnCreate.classList.remove('d-none');
+            }
         }
 
         function fillStandardTable(tableElement, headers, rows) {
@@ -933,18 +1004,17 @@
             let displayHeaders = headers; 
 
             if (currentSheet === 'JADWAL RONDA') {
-                // Rename header 'terakhir ronda' menjadi 'Hari' untuk tampilan saja (jika perlu)
+                // Rename header logic
                 const renamedHeaders = headers.map(h => String(h).toLowerCase() === "terakhir ronda" ? "Hari" : h);
                 
-                // --- PERUBAHAN 1: SORTING A-Z BERDASARKAN NAMA (KOLOM PERTAMA) ---
-                // Kita mengurutkan berdasarkan kolom pertama (Nama) secara ascending (A-Z)
+                // Sorting A-Z
                 workingRows.sort((a, b) => {
                     const nameA = String(a[headers[0]] || "").toLowerCase();
                     const nameB = String(b[headers[0]] || "").toLowerCase();
-                    return nameA.localeCompare(nameB, 'id'); // 'id' untuk bahasa Indonesia
+                    return nameA.localeCompare(nameB, 'id');
                 });
 
-                // Tampilkan header yang lebih pendek untuk tanggal
+                // Shorten date headers
                 displayHeaders = renamedHeaders.map(h => (typeof h !== 'string') ? h : (/^\d{2}-\w{3}-\d{4}$/.test(h) ? h.substring(0, 6) : h));
             }
 
@@ -954,6 +1024,8 @@
                 th.textContent = header;
                 headerRow.appendChild(th);
             });
+            
+            // Action Column Header
             const thAction = document.createElement('th');
             thAction.textContent = 'Aksi';
             thAction.className = 'text-end pe-3';
@@ -966,8 +1038,7 @@
                     const td = document.createElement('td');
                     const cellValue = row[originalKey];
                     
-                    // --- PERUBAHAN 2: CEK KOLOM FOTO UNTUK MENAMPILKAN GAMBAR ---
-                    // Jika sheet JADWAL RONDA dan nama kolom mengandung 'foto' (atau index ke-1)
+                    // Photo Logic
                     const isPhotoColumn = currentSheet === 'JADWAL RONDA' && 
                                          (String(displayHeaders[idx]).toLowerCase().includes('foto') || idx === 1);
                     
@@ -976,23 +1047,33 @@
                         img.src = cellValue;
                         img.className = 'ronda-avatar';
                         img.alt = 'Foto Warga';
-                        // Jika gambar error (tidak ditemukan), sembunyikan elemen gambarnya
-                        img.onerror = function() {
-                            this.style.display = 'none';
-                            // Opsional: Tampilkan teks alternatif jika gambar rusak
-                            // td.innerText = 'No Img'; 
-                        };
+                        img.onerror = function() { this.style.display = 'none'; };
                         td.appendChild(img);
-                        // Tambahkan sedikit padding agar rapi
                         td.style.padding = "4px 8px";
                     }
                     else if (BOOLEAN_SHEETS.includes(currentSheet) && typeof cellValue === 'boolean') {
                         td.className = 'text-center';
-                        const icon = document.createElement('i');
-                        icon.className = 'clickable-icon bi ' + (cellValue ? 'bi-check-circle-fill text-success fs-5' : 'bi-circle text-muted fs-5');
-                        icon.title = cellValue ? 'Selesai. Klik untuk ubah.' : 'Belum Selesai. Klik untuk ubah.';
-                        icon.onclick = () => toggleBoolean(row._row, originalKey, icon);
-                        td.appendChild(icon);
+                        
+                        // --- LOGIC EDIT MODE DISINI ---
+                        if (isEditMode) {
+                            // Tampilkan Checkbox jika sedang Edit Mode
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.className = 'form-check-input edit-checkbox';
+                            checkbox.checked = cellValue;
+                            // Simpan referensi data di atribut untuk memudahkan pengambilan data saat save
+                            checkbox.dataset.row = row._row;
+                            checkbox.dataset.col = originalKey;
+                            td.appendChild(checkbox);
+                        } else {
+                            // Tampilkan Icon saja (Read-Only) jika tidak sedang Edit Mode
+                            // Ini mencegah kepencet saat scroll
+                            const icon = document.createElement('i');
+                            // Hapus class clickable-icon agar tidak klickable
+                            icon.className = 'bi ' + (cellValue ? 'bi-check-circle-fill text-success fs-5' : 'bi-circle text-muted fs-5');
+                            icon.title = cellValue ? 'Selesai' : 'Belum Selesai';
+                            td.appendChild(icon);
+                        }
                     } else {
                         td.textContent = cellValue || '-';
                     }
@@ -1001,18 +1082,25 @@
                 
                 const tdAction = document.createElement('td');
                 tdAction.className = 'text-end pe-3';
-                let actionButtonsHTML = '';
-                if (BOOLEAN_SHEETS.includes(currentSheet)) {
-                    actionButtonsHTML = `<button class="btn btn-danger btn-sm rounded-circle" style="width:32px; height:32px; padding:0; display:inline-flex; align-items:center; justify-content:center;" onclick="openDeleteModal(${row._row})"><i class="bi bi-trash"></i></button>`;
+                
+                // Di Edit Mode, sembunyikan tombol aksi per baris (Edit/Delete) untuk fokus ke Checkbox
+                if (isEditMode) {
+                    tdAction.innerHTML = `<span class="text-muted small">Edit Mode...</span>`;
                 } else {
-                    actionButtonsHTML = `
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-outline-warning btn-sm" onclick="openUpdateModal(${row._row}, ${JSON.stringify(row).replace(/"/g, '&quot;')})"><i class="bi bi-pencil-fill"></i></button>
-                            <button class="btn btn-outline-danger btn-sm" onclick="openDeleteModal(${row._row})"><i class="bi bi-trash-fill"></i></button>
-                        </div>
-                    `;
+                    let actionButtonsHTML = '';
+                    if (BOOLEAN_SHEETS.includes(currentSheet)) {
+                        // Di view mode, hanya tombol hapus yang tampil (karena edit checkbox pakai batch mode)
+                        actionButtonsHTML = `<button class="btn btn-danger btn-sm rounded-circle" style="width:32px; height:32px; padding:0; display:inline-flex; align-items:center; justify-content:center;" onclick="openDeleteModal(${row._row})"><i class="bi bi-trash"></i></button>`;
+                    } else {
+                        actionButtonsHTML = `
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-outline-warning btn-sm" onclick="openUpdateModal(${row._row}, ${JSON.stringify(row).replace(/"/g, '&quot;')})"><i class="bi bi-pencil-fill"></i></button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="openDeleteModal(${row._row})"><i class="bi bi-trash-fill"></i></button>
+                            </div>
+                        `;
+                    }
+                    tdAction.innerHTML = actionButtonsHTML;
                 }
-                tdAction.innerHTML = actionButtonsHTML;
                 tr.appendChild(tdAction);
                 tableBody.appendChild(tr);
             });
@@ -1025,6 +1113,94 @@
                 }, 100);
             }
         }
+
+        // --- EDIT MODE FUNCTIONS ---
+        function enterEditMode() {
+            isEditMode = true;
+            // Re-render table untuk menampilkan checkbox
+            renderTable(currentHeaders, tableData);
+            showAlert('Mode Ubah Data Aktif: Silakan ceklis kolom yang ingin diubah.', 'info');
+        }
+
+        function cancelEditMode() {
+            isEditMode = false;
+            // Re-render table untuk kembali ke tampilan ikon statis
+            renderTable(currentHeaders, tableData);
+        }
+
+        async function saveBatchChanges() {
+            showLoader(true);
+            
+            // Kumpulkan semua perubahan dari checkbox yang ada di DOM
+            const checkboxes = document.querySelectorAll('.edit-checkbox');
+            const updates = [];
+
+            checkboxes.forEach(cb => {
+                const rowNum = parseInt(cb.dataset.row);
+                const colName = cb.dataset.col;
+                const newValue = cb.checked;
+                
+                // Cari nilai asli di tableData
+                const originalRow = tableData.find(r => r._row === rowNum);
+                if (originalRow && originalRow[colName] !== newValue) {
+                    updates.push({
+                        row: rowNum,
+                        column: colName,
+                        value: newValue
+                    });
+                }
+            });
+
+            if (updates.length === 0) {
+                showLoader(false);
+                showAlert('Tidak ada perubahan yang disimpan.', 'warning');
+                cancelEditMode();
+                return;
+            }
+
+            try {
+                // Karena API kemungkinan hanya handle satu request per update, 
+                // kita kirim secara paralel menggunakan Promise.all
+                const promises = updates.map(u => {
+                    return fetch(API_URL, { 
+                        method: 'POST', 
+                        body: JSON.stringify({ 
+                            sheet: currentSheet, 
+                            action: 'updateCell', 
+                            row: u.row, 
+                            column: u.column, 
+                            value: u.value 
+                        }) 
+                    }).then(res => res.json());
+                });
+
+                const results = await Promise.all(promises);
+                
+                // Cek apakah ada error di salah satu request
+                const hasError = results.some(r => r.error);
+                if (hasError) {
+                    throw new Error('Beberapa data gagal diperbarui.');
+                }
+
+                showAlert(`${updates.length} data berhasil diperbarui!`, 'success');
+                
+                // --- PERUBAHAN LOGIKA DISINI ---
+                // Kita tidak lagi mengupdate data lokal secara manual, melainkan
+                // memanggil loadData lagi untuk mengambil struktur terbaru dari Spreadsheet
+                // (termasuk kolom baru yang mungkin ditambahkan otomatis oleh logic Apps Script).
+                
+                await loadData(currentSheet);
+                
+                // Keluar dari mode edit secara otomatis setelah save
+                if (isEditMode) cancelEditMode(); 
+
+            } catch (error) {
+                showAlert('Gagal menyimpan perubahan: ' + error.message, 'danger');
+            } finally {
+                showLoader(false);
+            }
+        }
+
 
         function renderPengumumanPartial(rows, container) {
             if (rows.length === 0) {
@@ -1108,7 +1284,6 @@
             const keyTanggal = headers.find(h => h.toLowerCase() === 'tanggal') || headers[2];
             const keyKet = headers.find(h => h.toLowerCase().includes('keterangan')) || headers[3];
 
-            // Helper untuk mendapatkan objek tanggal valid
             const getValidDate = (val) => {
                 if (!val) return new Date(0);
                 if (typeof val === 'string') return new Date(val);
@@ -1134,14 +1309,12 @@
                 }
                 acc[displayPeriode].rows.push(row);
                 
-                // Update tanggal referensi periode jika ada transaksi lebih baru di periode yang sama
                 if (refDate > acc[displayPeriode].sortDate) {
                     acc[displayPeriode].sortDate = refDate;
                 }
                 return acc;
             }, {});
 
-            // Sorting Periode (Terbaru di atas)
             const sortedPeriodKeys = Object.keys(groups).sort((a, b) => {
                 return groups[b].sortDate - groups[a].sortDate;
             });
@@ -1150,7 +1323,6 @@
                 const groupData = groups[periode];
                 let groupRows = groupData.rows;
 
-                // Sorting Transaksi di dalam Periode (Terbaru di atas)
                 groupRows.sort((a, b) => {
                     const dateA = getValidDate(a[keyTanggal]);
                     const dateB = getValidDate(b[keyTanggal]);
@@ -1345,7 +1517,7 @@
 
             const infoDiv = document.createElement('div');
             infoDiv.className = 'alert alert-info bg-light border-0 text-secondary';
-            infoDiv.innerHTML = `<i class="bi bi-info-circle me-1"></i> Kolom lainnya akan otomatis diisi.`;
+            infoDiv.innerHTML = `<i class="bi bi-info-circle me-1"></i> Kolom lainnya akan otomatis diisi. Gunakan tombol "Ubah Data" di atas untuk mencentang checklist.`;
             formBody.appendChild(infoDiv);
         }
 
@@ -1480,43 +1652,6 @@
                 showAlert('Terjadi kesalahan: ' + error.message, 'danger');
             } finally {
                 showLoader(false);
-            }
-        }
-
-        async function toggleBoolean(rowNumber, columnName, iconElement) {
-            const isCurrentlyTrue = iconElement.classList.contains('bi-check-circle-fill');
-            const newValue = !isCurrentlyTrue;
-            const originalClasses = iconElement.className;
-            const originalTitle = iconElement.title;
-
-            if (newValue) {
-                iconElement.className = 'clickable-icon bi bi-check-circle-fill text-success fs-5';
-                iconElement.title = 'Selesai. Klik untuk ubah.';
-            } else {
-                iconElement.className = 'clickable-icon bi bi-circle text-muted fs-5';
-                iconElement.title = 'Belum Selesai. Klik untuk ubah.';
-            }
-            iconElement.classList.add('opacity-50');
-
-            const rowIndex = tableData.findIndex(row => row._row === rowNumber);
-            if (rowIndex !== -1) tableData[rowIndex][columnName] = newValue;
-
-            const payload = { sheet: currentSheet, action: 'updateCell', row: rowNumber, column: columnName, value: newValue };
-            try {
-                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                const result = await response.json();
-                if (result.error) throw new Error(result.error);
-                showAlert(result.message || 'Status berhasil diperbarui!', 'success');
-                if (currentSheet === 'JADWAL RONDA' && newValue === true) {
-                    setTimeout(() => loadData(currentSheet), 500);
-                }
-            } catch (error) {
-                showAlert('Gagal memperbarui status: ' + error.message, 'danger');
-                iconElement.className = originalClasses;
-                iconElement.title = originalTitle;
-                if (rowIndex !== -1) tableData[rowIndex][columnName] = isCurrentlyTrue;
-            } finally {
-                iconElement.classList.remove('opacity-50');
             }
         }
 
