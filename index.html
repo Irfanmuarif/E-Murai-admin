@@ -871,7 +871,7 @@
             loadData(currentSheet);
         }
 
-        // --- FUNGSI FORMAT TANGGAL (FIXED TIMEZONE) ---
+        // --- FUNGSI FORMAT TANGGAL (FIXED TIMEZONE & LOCALE) ---
         function formatDateDisplay(value) {
             if (!value) return '';
             let dateObj;
@@ -883,9 +883,14 @@
                 return value;
             }
             if (isNaN(dateObj.getTime())) return value;
-            const options = { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' };
-            const parts = dateObj.toLocaleDateString('en-US', options).split(' '); 
-            return `${parts[1]}-${parts[0]}-${parts[2]}`;
+            
+            // PERUBAHAN: Menggunakan 'id-ID' agar nama bulan Bahasa Indonesia (Mei, Jun, dll)
+            // Format output: DD-MMM-YYYY (Contoh: 09-Mei-2026)
+            const day = dateObj.toLocaleDateString('id-ID', { day: '2-digit', timeZone: 'Asia/Jakarta' });
+            const month = dateObj.toLocaleDateString('id-ID', { month: 'short', timeZone: 'Asia/Jakarta' });
+            const year = dateObj.toLocaleDateString('id-ID', { year: 'numeric', timeZone: 'Asia/Jakarta' });
+            
+            return `${day}-${month}-${year}`;
         }
 
         function formatDateForInput(value) {
@@ -899,6 +904,8 @@
                 return '';
             }
             if (isNaN(dateObj.getTime())) return '';
+            // Untuk input type="date" HTML, format wajib YYYY-MM-DD (ISO)
+            // Kita tetap gunakan en-US atau parsing manual agar format standar terjaga
             const y = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric' });
             const m = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', month: '2-digit' });
             const d = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', day: '2-digit' });
@@ -1265,6 +1272,7 @@
                 if (typeof rawVal === 'string' && !rawVal.includes('T') && isNaN(new Date(rawVal).getTime())) return rawVal;
                 const dateObj = getValidDate(rawVal);
                 if (isNaN(dateObj.getTime())) return String(rawVal);
+                // Menggunakan id-ID untuk periode juga
                 return dateObj.toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' });
             };
 
@@ -1576,6 +1584,7 @@
                     const formatBulanTahun = (dateString) => {
                         if (!dateString) return '';
                         const date = new Date(dateString);
+                        // PERUBAHAN: Menggunakan id-ID agar konsisten
                         return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' });
                     };
                     const pemasukkanValue = (jenis === 'pemasukkan') ? jumlah : '0';
