@@ -129,7 +129,7 @@
             box-shadow: var(--shadow-float);
             display: flex;
             width: 95%;
-            max-width: 450px;
+            max-width: 500px;
             border:1px solid rgba(0,0,0,0.05);
         }
         
@@ -304,6 +304,27 @@
         }
         .uangkas-period-header:not(.collapsed) .chevron-icon {
             transform: rotate(180deg);
+        }
+
+        /* --- LAINNYA TITLE CARD --- */
+        .lainnya-title-card {
+            background: var(--surface);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        .lainnya-title-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* --- TABLES & STICKY COLS --- */
@@ -509,7 +530,7 @@
                 margin-bottom: 0;
             }
             .nav-tabs.bottom-tabs .nav-link span.tab-text {
-                font-size: 0.55rem; 
+                font-size: 0.5rem; 
                 font-weight: 600;
             }
 
@@ -593,6 +614,15 @@
                 width: 35px;
                 height: 35px;
             }
+
+            /* Lainnya title card stack */
+            .lainnya-title-card .input-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .lainnya-title-card .input-group .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -664,7 +694,7 @@
                                 <i class="bi bi-plus-lg me-1"></i> <span class="d-none d-sm-inline">Tambah Data</span>
                             </button>
 
-                            <!-- Tombol Edit Batch (Hanya muncul di IURAN & JADWAL) -->
+                            <!-- Tombol Edit Batch (Hanya muncul di IURAN, JADWAL, LAINNYA) -->
                             <button class="btn btn-outline-primary btn-sm d-none" id="btnEdit" onclick="enterEditMode()">
                                 <i class="bi bi-pencil-square me-1"></i> <span class="d-none d-sm-inline">Ubah Data</span>
                             </button>
@@ -680,6 +710,9 @@
                             </button>
                         </div>
                     </div>
+
+                    <!-- Wadah untuk Judul LAINNYA (Cell A1) -->
+                    <div id="lainnyaTitleContainer" class="d-none"></div>
 
                     <!-- Wadah untuk Tabel Biasa -->
                     <div class="table-responsive d-none p-0" id="standardTableContainer" style="background: white; border-radius: 12px; box-shadow: var(--shadow-sm);">
@@ -822,16 +855,20 @@
             document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
         }
 
-        const SHEETS = ['PENGUMUMAN', 'UANG KAS', 'IURAN BULANAN', 'JADWAL RONDA']; 
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyj4ojb7sjpwwih-cYCI8uDrbYFcn94_g4K5hZ-QxP-W-k9uKJfcxg9M0oKKOZpvL8s/exec';
+        // TAMBAHAN: 'LAINNYA' ditambahkan ke array SHEETS
+        const SHEETS = ['PENGUMUMAN', 'UANG KAS', 'IURAN BULANAN', 'JADWAL RONDA', 'LAINNYA']; 
+        const API_URL = 'https://script.google.com/macros/s/AKfycbweGM4jHtw0r--BIjqFoqU5r5ZjwKy8S4zuTXjg6f2c_iFEFFjaKEFFEhhda8j2xJyI/exec';
         
-        const BOOLEAN_SHEETS = ['IURAN BULANAN', 'JADWAL RONDA'];
+        // TAMBAHAN: 'LAINNYA' juga dimasukkan ke BOOLEAN_SHEETS agar pakai checkbox centang
+        const BOOLEAN_SHEETS = ['IURAN BULANAN', 'JADWAL RONDA', 'LAINNYA'];
 
         let currentHeaders = [];
         let currentAction = 'create';
         let currentRowNumber = null;
         let currentSheet = SHEETS[0];
         let tableData = []; 
+        // TAMBAHAN: Variabel untuk menyimpan judul A1 pada sheet LAINNYA
+        let currentTitle = '';
 
         // --- EDIT MODE VARIABLES ---
         let isEditMode = false;
@@ -852,6 +889,8 @@
                 else if (sheetName === 'UANG KAS') iconClass = 'bi-wallet2';
                 else if (sheetName === 'IURAN BULANAN') iconClass = 'bi-calendar-check';
                 else if (sheetName === 'JADWAL RONDA') iconClass = 'bi-shield-check';
+                // TAMBAHAN: Icon untuk LAINNYA
+                else if (sheetName === 'LAINNYA') iconClass = 'bi-list-check';
 
                 button.innerHTML = `
                     <div><i class="bi ${iconClass}"></i></div>
@@ -884,8 +923,6 @@
             }
             if (isNaN(dateObj.getTime())) return value;
             
-            // PERUBAHAN: Menggunakan 'id-ID' agar nama bulan Bahasa Indonesia (Mei, Jun, dll)
-            // Format output: DD-MMM-YYYY (Contoh: 09-Mei-2026)
             const day = dateObj.toLocaleDateString('id-ID', { day: '2-digit', timeZone: 'Asia/Jakarta' });
             const month = dateObj.toLocaleDateString('id-ID', { month: 'short', timeZone: 'Asia/Jakarta' });
             const year = dateObj.toLocaleDateString('id-ID', { year: 'numeric', timeZone: 'Asia/Jakarta' });
@@ -904,8 +941,6 @@
                 return '';
             }
             if (isNaN(dateObj.getTime())) return '';
-            // Untuk input type="date" HTML, format wajib YYYY-MM-DD (ISO)
-            // Kita tetap gunakan en-US atau parsing manual agar format standar terjaga
             const y = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric' });
             const m = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', month: '2-digit' });
             const d = dateObj.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', day: '2-digit' });
@@ -920,6 +955,9 @@
                 if (result.error) throw new Error(result.error);
                 currentHeaders = result.headers;
                 tableData = result.rows;
+                // TAMBAHAN: Simpan judul dari A1 untuk sheet LAINNYA
+                // Catatan: GAS harus return field 'title' berisi nilai cell A1 saat sheet = LAINNYA
+                currentTitle = (sheetName === 'LAINNYA' && result.title !== undefined) ? result.title : '';
                 renderTable(result.headers, result.rows);
             } catch (error) {
                 showAlert('Gagal memuat data: ' + error.message, 'danger');
@@ -927,6 +965,8 @@
                 document.querySelector('#dataTable tbody').innerHTML = '';
                 document.getElementById('uangKasContainer').innerHTML = '';
                 document.getElementById('pengumumanContainer').innerHTML = '';
+                document.getElementById('lainnyaTitleContainer').innerHTML = '';
+                document.getElementById('lainnyaTitleContainer').classList.add('d-none');
             } finally {
                 showLoader(false);
             }
@@ -936,6 +976,7 @@
             const standardContainer = document.getElementById('standardTableContainer');
             const uangKasContainer = document.getElementById('uangKasContainer');
             const pengumumanContainer = document.getElementById('pengumumanContainer');
+            const lainnyaTitleContainer = document.getElementById('lainnyaTitleContainer');
             const actionHeader = document.getElementById('actionHeader');
             const pageTitle = document.getElementById('pageTitle');
             
@@ -943,6 +984,9 @@
             standardContainer.classList.remove('d-block');
             uangKasContainer.innerHTML = '';
             pengumumanContainer.innerHTML = '';
+            // TAMBAHAN: Reset container judul LAINNYA
+            lainnyaTitleContainer.innerHTML = '';
+            lainnyaTitleContainer.classList.add('d-none');
             actionHeader.classList.remove('d-none');
             pageTitle.innerText = currentSheet;
 
@@ -964,6 +1008,27 @@
             if (currentSheet === 'UANG KAS') {
                 renderUangKasGrouped(headers, rows, uangKasContainer);
                 return;
+            }
+
+            // TAMBAHAN: Tampilkan input judul (cell A1) hanya untuk sheet LAINNYA
+            if (currentSheet === 'LAINNYA') {
+                lainnyaTitleContainer.classList.remove('d-none');
+                lainnyaTitleContainer.innerHTML = `
+                    <div class="lainnya-title-card">
+                        <div class="lainnya-title-label">
+                            <i class="bi bi-pencil-square"></i> Judul (Cell A1)
+                        </div>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="lainnyaTitleInput" placeholder="Masukkan judul...">
+                            <button class="btn btn-primary-custom" type="button" onclick="saveLainnyaTitle()">
+                                <i class="bi bi-save me-1"></i> Simpan Judul
+                            </button>
+                        </div>
+                    </div>
+                `;
+                // Set value via JS untuk menghindari karakter escape
+                const titleInput = document.getElementById('lainnyaTitleInput');
+                if (titleInput) titleInput.value = currentTitle;
             }
 
             standardContainer.classList.remove('d-none');
@@ -999,28 +1064,21 @@
                 const firstCol = headers[0]; // Nama
                 const lastCol = headers[headers.length - 1]; // Terakhir Ronda
                 
-                // Ambil kolom tengah (kecuali pertama & terakhir)
                 const middleCols = headers.slice(1, headers.length - 1);
-                
-                // Ambil 9 kolom terakhir dari bagian tengah
                 const recentCols = middleCols.slice(-9);
 
-                // Gabungkan ulang header
                 displayHeaders = [firstCol, ...recentCols, lastCol];
                 dataKeys = [...displayHeaders];
 
-                // --- FILTER DATA ROWS ---
-                // Buat array objek baru yang hanya berisi data untuk header yang ditampilkan
                 workingRows = workingRows.map(row => {
                     let newRow = {};
                     displayHeaders.forEach(key => {
                         newRow[key] = row[key];
                     });
-                    newRow._row = row._row; // Pertahankan nomor baris asli untuk update/delete
+                    newRow._row = row._row;
                     return newRow;
                 });
             }
-            // -------------------------------------------------------------------------------------------
 
             if (currentSheet === 'JADWAL RONDA') {
                 const renamedHeaders = displayHeaders.map(h => String(h).toLowerCase() === "terakhir ronda" ? "Hari" : h);
@@ -1063,6 +1121,8 @@
                         td.appendChild(img);
                         td.style.padding = "4px 8px";
                     }
+                    // TAMBAHAN: BOOLEAN_SHEETS sekarang juga mencakup LAINNYA
+                    // sehingga kolom Status pada LAINNYA otomatis dirender sebagai checkbox/icon
                     else if (BOOLEAN_SHEETS.includes(currentSheet) && typeof cellValue === 'boolean') {
                         td.className = 'text-center';
                         if (isEditMode) {
@@ -1178,6 +1238,36 @@
             }
         }
 
+        // --- TAMBAHAN BARU: Fungsi untuk menyimpan judul (cell A1) pada sheet LAINNYA ---
+        async function saveLainnyaTitle() {
+            const titleInput = document.getElementById('lainnyaTitleInput');
+            if (!titleInput) return;
+            const newTitle = titleInput.value.trim();
+            if (!newTitle) {
+                showAlert('Judul tidak boleh kosong!', 'warning');
+                return;
+            }
+            showLoader(true);
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        sheet: 'LAINNYA',
+                        action: 'updateTitle',
+                        value: newTitle
+                    })
+                });
+                const result = await response.json();
+                if (result.error) throw new Error(result.error);
+                currentTitle = newTitle;
+                showAlert('Judul berhasil diperbarui!', 'success');
+            } catch (error) {
+                showAlert('Gagal memperbarui judul: ' + error.message, 'danger');
+            } finally {
+                showLoader(false);
+            }
+        }
+
         function renderPengumumanPartial(rows, container) {
             if (rows.length === 0) {
                 container.innerHTML = '<div class="text-center py-5 text-muted">Tidak ada pengumuman.</div>';
@@ -1272,7 +1362,6 @@
                 if (typeof rawVal === 'string' && !rawVal.includes('T') && isNaN(new Date(rawVal).getTime())) return rawVal;
                 const dateObj = getValidDate(rawVal);
                 if (isNaN(dateObj.getTime())) return String(rawVal);
-                // Menggunakan id-ID untuk periode juga
                 return dateObj.toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' });
             };
 
@@ -1383,7 +1472,8 @@
         function openCreateModal() {
             currentAction = 'create';
             document.getElementById('formModalLabel').innerText = `Tambah Data Baru ke ${currentSheet}`;
-            if (currentSheet === 'IURAN BULANAN' || currentSheet === 'JADWAL RONDA') {
+            // TAMBAHAN: LAINNYA juga pakai simplified form (cuma minta 1 input: Nama Warga)
+            if (BOOLEAN_SHEETS.includes(currentSheet)) {
                 generateSimplifiedFormFields();
             } else if (currentSheet === 'UANG KAS') {
                 generateUangKasFormFields(); 
@@ -1399,7 +1489,7 @@
             document.getElementById('formModalLabel').innerText = `Edit Data di ${currentSheet}`;
             if (currentSheet === 'UANG KAS') {
                 generateUangKasFormFields(rowData); 
-            } else if (currentSheet === 'IURAN BULANAN' || currentSheet === 'JADWAL RONDA') {
+            } else if (BOOLEAN_SHEETS.includes(currentSheet)) {
                 generateSimplifiedFormFields(rowData);
             } else {
                 generateFormFields(rowData);
@@ -1529,7 +1619,6 @@
             const descGroup = document.createElement('div');
             descGroup.className = 'mb-3';
             
-            // PERUBAHAN DISINI: Menambahkan atribut list dan elemen datalist
             descGroup.innerHTML = `
                 <label for='input-keterangan' class='form-label'>${descHeader}</label>
                 <input type='text' class='form-control' id='input-keterangan' name='keterangan' list='opsi-keterangan' value='${initialKet}' placeholder="Contoh: Iuran Kebersihan" required autocomplete="off">
@@ -1570,7 +1659,8 @@
             let values = [];
 
             if (currentAction === 'create') {
-                if (currentSheet === 'IURAN BULANAN' || currentSheet === 'JADWAL RONDA') {
+                // TAMBAHAN: BOOLEAN_SHEETS sekarang juga mencakup LAINNYA
+                if (BOOLEAN_SHEETS.includes(currentSheet)) {
                     const firstColumnValue = formData.get(currentHeaders[0]) || '';
                     values = [firstColumnValue];
                     for (let i =1; i < currentHeaders.length; i++) {
@@ -1584,7 +1674,6 @@
                     const formatBulanTahun = (dateString) => {
                         if (!dateString) return '';
                         const date = new Date(dateString);
-                        // PERUBAHAN: Menggunakan id-ID agar konsisten
                         return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' });
                     };
                     const pemasukkanValue = (jenis === 'pemasukkan') ? jumlah : '0';
