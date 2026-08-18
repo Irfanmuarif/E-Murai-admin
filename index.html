@@ -326,6 +326,23 @@
             align-items: center;
             gap: 6px;
         }
+        
+        /* Custom wrapper (tanpa Bootstrap input-group agar kontrol penuh) */
+        .lainnya-title-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+        }
+        .lainnya-title-input-wrapper .form-control {
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 48px;
+            font-size: 1rem;
+        }
+        .lainnya-title-input-wrapper .btn {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
 
         /* --- TABLES & STICKY COLS --- */
         .table-responsive {
@@ -615,13 +632,18 @@
                 height: 35px;
             }
 
-            /* Lainnya title card stack */
-            .lainnya-title-card .input-group {
+            /* --- LAINNYA TITLE MOBILE --- */
+            .lainnya-title-input-wrapper {
                 flex-direction: column;
-                gap: 8px;
             }
-            .lainnya-title-card .input-group .btn {
+            .lainnya-title-input-wrapper .form-control {
                 width: 100%;
+                min-height: 50px;
+                font-size: 1rem;
+            }
+            .lainnya-title-input-wrapper .btn {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>
@@ -1018,15 +1040,17 @@
                         <div class="lainnya-title-label">
                             <i class="bi bi-pencil-square"></i> Judul (Cell A1)
                         </div>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="lainnyaTitleInput" placeholder="Masukkan judul...">
+                        <div class="lainnya-title-input-wrapper">
+                            <input type="text" class="form-control" id="lainnyaTitleInput" 
+                                   placeholder="Masukkan judul..." 
+                                   onfocus="this.select()"
+                                   autocomplete="off">
                             <button class="btn btn-primary-custom" type="button" onclick="saveLainnyaTitle()">
                                 <i class="bi bi-save me-1"></i> Simpan Judul
                             </button>
                         </div>
                     </div>
                 `;
-                // Set value via JS untuk menghindari karakter escape
                 const titleInput = document.getElementById('lainnyaTitleInput');
                 if (titleInput) titleInput.value = currentTitle;
             }
